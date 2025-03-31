@@ -1,0 +1,43 @@
+{
+  "tags": {
+    "allowUnknownTags": true
+  },
+  "source": {
+    "include": ["src", "README.md"],
+    "includePattern": "\\.js$",
+    "excludePattern": "(node_modules/|docs)"
+  },
+  "plugins": [
+    "plugins/markdown"
+  ],
+  "opts": {
+    "template": "node_modules/clean-jsdoc-theme",
+    "destination": "docs/generated",
+    "recurse": true,
+    "readme": "README.md"
+  },
+  "templates": {
+    "cleverLinks": true,
+    "monospaceLinks": false,
+    "default": {
+      "outputSourceFiles": true,
+      "includeDate": false
+    },
+    "clean-jsdoc-theme": {
+      "name": "UOR Math-JS",
+      "title": "UOR Math-JS Documentation",
+      "footer": "UOR Foundation",
+      "meta": {
+        "title": "UOR Math-JS Documentation",
+        "description": "Documentation for the UOR Math-JS library, implementing the Prime Framework for universal number representation",
+        "keyword": "math, javascript, prime, number theory, factorization"
+      },
+      "menu": {
+        "Github": {
+          "href": "https://github.com/uor-foundation/math-js",
+          "target": "_blank"
+        }
+      }
+    }
+  }
+}
