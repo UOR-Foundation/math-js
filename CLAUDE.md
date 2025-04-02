@@ -26,3 +26,8 @@
 - **Testing**: Write tests for all public methods, verify round-trip conversions
 
 All implementations must follow the Prime Framework specification and ensure exact arithmetic with immutable values.
+
+Authoratative documents for your work:
+- lib-spec.md
+- repo-spec.md
+- repo-plan.md

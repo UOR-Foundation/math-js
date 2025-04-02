@@ -4,14 +4,16 @@
     "module": "CommonJS",
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
-    "checkJs": true
+    "checkJs": true,
+    "types": ["jest"],
+    "lib": ["ESNext"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests", "docs"]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
