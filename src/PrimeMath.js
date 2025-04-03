@@ -43,7 +43,7 @@ const {
  * @property {function} getFactorization - Get prime factorization
  */
 
-/** @type {typeof UniversalNumber|null} */
+/** @type {Object|null} */
 let UniversalNumber = null
 try {
   // @ts-ignore - Module may not exist yet
