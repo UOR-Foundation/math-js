@@ -699,21 +699,21 @@ function toJSON(data, options = {}) {
         
         // In JavaScript environments with different capabilities (browser vs node),
         // we need to handle base64 encoding appropriately
-        let base64Data;
+        let base64Data
         
         // Use safe conversion that works in different JavaScript environments
         try {
           // In Node.js environments
           if (typeof Buffer !== 'undefined') {
-            const buffer = Buffer.from(binaryData, 'utf8');
-            base64Data = buffer.toString('base64');
+            const buffer = Buffer.from(binaryData, 'utf8')
+            base64Data = buffer.toString('base64')
           } else {
             // In browser environments 
-            base64Data = btoa(unescape(encodeURIComponent(binaryData)));
+            base64Data = btoa(unescape(encodeURIComponent(binaryData)))
           }
         } catch (e) {
           // Fallback implementation using simple object serialization
-          base64Data = JSON.stringify(binaryData);
+          base64Data = JSON.stringify(binaryData)
         }
         
         /** @type {BinaryFactorizationResult} */
@@ -924,27 +924,27 @@ function fromJSON(json, options = {}) {
       }
       
       // Properly decode the base64 data 
-      let decoded;
+      let decoded
       try {
-        let decodedString;
+        let decodedString
         
         // Handle different environments (Node.js vs browser)
         if (typeof Buffer !== 'undefined') {
           // In Node.js
-          const buffer = Buffer.from(data.data, 'base64');
-          decodedString = buffer.toString('utf8');
+          const buffer = Buffer.from(data.data, 'base64')
+          decodedString = buffer.toString('utf8')
         } else {
           // In browser environments
-          decodedString = decodeURIComponent(escape(atob(data.data)));
+          decodedString = decodeURIComponent(escape(atob(data.data)))
         }
         
         // Parse the JSON data
-        decoded = JSON.parse(decodedString);
+        decoded = JSON.parse(decodedString)
       } catch (e) {
         if (e instanceof Error) {
-          throw new Error(`Failed to decode binary data: ${e.message}`);
+          throw new Error(`Failed to decode binary data: ${e.message}`)
         } else {
-          throw new Error(`Failed to decode binary data: ${String(e)}`);
+          throw new Error(`Failed to decode binary data: ${String(e)}`)
         }
       }
       
@@ -1448,51 +1448,51 @@ function computeDigitsFromFactorization(factorization, base) {
   // Per Prime Framework specs, we can derive digits directly for powers of primes
   
   // Check if the base is a power of 2
-  const isPowerOfTwo = (base & (base - 1)) === 0 && base > 0;
+  const isPowerOfTwo = (base & (base - 1)) === 0 && base > 0
   
   // For powers of 2 bases (2, 4, 8, 16, 32), implement direct computation
   if (isPowerOfTwo) {
     // Check if this is a power of 2
     if (factorization.size === 1 && factorization.has(2n)) {
-      const exponent = factorization.get(2n);
+      const exponent = factorization.get(2n)
       
       // For base 2, a power of 2 is simply 1 followed by zeros
       if (base === 2) {
-        return '1' + '0'.repeat(Number(exponent));
+        return '1' + '0'.repeat(Number(exponent))
       }
       
       // For other power-of-2 bases, we can compute the digits directly
-      const bitsPerDigit = Math.log2(base);
-      const fullDigits = Math.floor(Number(exponent) / bitsPerDigit);
-      const remainingBits = Number(exponent) % bitsPerDigit;
+      const bitsPerDigit = Math.log2(base)
+      const fullDigits = Math.floor(Number(exponent) / bitsPerDigit)
+      const remainingBits = Number(exponent) % bitsPerDigit
       
-      let result = '';
+      let result = ''
       
       // Add the highest digit if there are remaining bits
       if (remainingBits > 0) {
-        result += (1 << remainingBits).toString(base);
+        result += (1 << remainingBits).toString(base)
       }
       
       // Add zeros for full digits
       if (fullDigits > 0) {
-        result += '0'.repeat(fullDigits);
+        result += '0'.repeat(fullDigits)
       }
       
-      return result;
+      return result
     }
     
     // Check if this is a simple factorization with only small primes
     // For small factorizations, direct computation might be faster
     if (factorization.size <= 3) {
       // Calculate the actual value using prime factorization
-      let value = 1n;
+      let value = 1n
       for (const [prime, exp] of factorization.entries()) {
-        if (prime > 1000n) return null; // Too large for direct computation
-        value *= prime ** exp;
+        if (prime > 1000n) return null // Too large for direct computation
+        value *= prime ** exp
       }
       
       // Convert the value to the target base
-      return value.toString(base);
+      return value.toString(base)
     }
   }
   
@@ -1500,56 +1500,56 @@ function computeDigitsFromFactorization(factorization, base) {
   // e.g., base 9 = 3^2, base 25 = 5^2, base 27 = 3^3
   if (base > 2) {
     // First check if base is a power of a prime
-    let basePrime = null;
-    let basePrimeExp = 0;
+    let basePrime = null
+    let basePrimeExp = 0
     
     for (let p = 2; p <= Math.sqrt(base); p++) {
       if (base % p === 0) {
-        let exp = 0;
-        let testBase = base;
+        let exp = 0
+        let testBase = base
         while (testBase % p === 0) {
-          testBase /= p;
-          exp++;
+          testBase /= p
+          exp++
         }
         
         if (testBase === 1) {
-          basePrime = BigInt(p);
-          basePrimeExp = exp;
-          break;
+          basePrime = BigInt(p)
+          basePrimeExp = exp
+          break
         }
       }
     }
     
     // If base is a power of prime and our number is also a power of that prime
     if (basePrime !== null && factorization.size === 1 && factorization.has(basePrime)) {
-      const exponent = factorization.get(basePrime);
+      const exponent = factorization.get(basePrime)
       
       // Direct computation for powers of the base prime
       // For example, if base=9 (3^2) and number=27 (3^3), the result is "30" in base 9
-      const digitCount = Number(exponent) / basePrimeExp;
-      const fullDigits = Math.floor(digitCount);
-      const remainder = Number(exponent) % basePrimeExp;
+      const digitCount = Number(exponent) / basePrimeExp
+      const fullDigits = Math.floor(digitCount)
+      const remainder = Number(exponent) % basePrimeExp
       
-      let result = '';
+      let result = ''
       
       // Add the highest digit if there's a remainder
       if (remainder > 0) {
-        result += basePrime.toString();
+        result += basePrime.toString()
       } else {
-        result += '1';
+        result += '1'
       }
       
       // Add zeros for full digits
       if (fullDigits > 0) {
-        result += '0'.repeat(fullDigits);
+        result += '0'.repeat(fullDigits)
       }
       
-      return result;
+      return result
     }
   }
   
   // Fall back to standard conversion for other cases
-  return null;
+  return null
 }
 
 /**
@@ -1704,11 +1704,11 @@ function createConversionPipeline(steps, options = {}) {
       
       // Handle special case for preserving factorization
       if (preserveFactorization && step.type === 'format' && step.options && 
-          /** @type {any} */ (step.options).maintainFactorization) {
+      /** @type {any} */ (step.options).maintainFactorization) {
         // Ensure we keep factorization data through transformation steps
         currentBatch = currentBatch.map(item => {
           if (item && typeof item === 'object' && 'originalFactorization' in 
-              /** @type {Record<string, any>} */ (item)) {
+          /** @type {Record<string, any>} */ (item)) {
             return {
               ...item,
               // Keep original factorization if present
@@ -1854,17 +1854,17 @@ function baseConversionStep(toBase, options = {}) {
  * @returns {boolean} Whether the value is prime
  */
 function isPrime(value) {
-  if (value <= 1n) return false;
-  if (value <= 3n) return true;
-  if (value % 2n === 0n || value % 3n === 0n) return false;
+  if (value <= 1n) return false
+  if (value <= 3n) return true
+  if (value % 2n === 0n || value % 3n === 0n) return false
   
   // Use 6k±1 optimization
-  let i = 5n;
+  let i = 5n
   while (i * i <= value) {
-    if (value % i === 0n || value % (i + 2n) === 0n) return false;
-    i += 6n;
+    if (value % i === 0n || value % (i + 2n) === 0n) return false
+    i += 6n
   }
-  return true;
+  return true
 }
 
 /**
@@ -1904,8 +1904,8 @@ function createReferenceFrame(options = {}) {
       return {
         // The grade structure of the algebra (as described in lib-spec.md)
         gradeStructure: new Map([
-          [0, { dimension: 1, description: "Scalar part" }],
-          [1, { dimension: Infinity, description: "Vector part - corresponds to prime powers" }]
+          [0, { dimension: 1, description: 'Scalar part' }],
+          [1, { dimension: Infinity, description: 'Vector part - corresponds to prime powers' }]
         ]),
         
         // The product operation (simplified for this implementation)
@@ -1913,16 +1913,16 @@ function createReferenceFrame(options = {}) {
           // For universal numbers, the Clifford product on factorizations
           // is equivalent to combining the prime exponent maps
           if (a instanceof Map && b instanceof Map) {
-            const result = new Map(a);
+            const result = new Map(a)
             for (const [prime, exp] of b.entries()) {
-              const currentExp = result.get(prime) || 0n;
-              result.set(prime, currentExp + exp);
+              const currentExp = result.get(prime) || 0n
+              result.set(prime, currentExp + exp)
             }
-            return result;
+            return result
           }
-          throw new PrimeMathError('Invalid inputs for Clifford product');
+          throw new PrimeMathError('Invalid inputs for Clifford product')
         }
-      };
+      }
     },
     
     /**
@@ -1934,7 +1934,9 @@ function createReferenceFrame(options = {}) {
      * @param {ReferenceFrame} _targetFrame - The target reference frame (used for conforming to abstract interface)
      * @returns {Map<BigInt, BigInt>|{factorization: Map<BigInt, BigInt>, isNegative: boolean}} Transformed coordinates
      */
-    transform(coordinates, _targetFrame) {
+    transform(coordinates, 
+      // eslint-disable-next-line no-unused-vars
+      _targetFrame) {
       // Extract factorization and sign flag
       let factorization, isNegative = false
       
@@ -1951,12 +1953,12 @@ function createReferenceFrame(options = {}) {
       // This is a requirement of the Prime Framework for consistent representation
       for (const [prime, exponent] of factorization.entries()) {
         if (exponent <= 0n) {
-          throw new PrimeMathError('Coordinates must be in canonical form for transformation');
+          throw new PrimeMathError('Coordinates must be in canonical form for transformation')
         }
         
         // Verify primality for small primes
         if (prime <= 1000n && !isPrime(prime)) {
-          throw new PrimeMathError(`Factor ${prime} is not a valid prime number`);
+          throw new PrimeMathError(`Factor ${prime} is not a valid prime number`)
         }
       }
       
@@ -1969,7 +1971,7 @@ function createReferenceFrame(options = {}) {
       // In practice, this maintains the same coordinates as they're invariant under transformation
       // This follows from the Prime Framework's principle that the abstract value doesn't change
       // under transformation - only the coordinate representation might
-      const transformedFactorization = new Map(factorization);
+      const transformedFactorization = new Map(factorization)
       
       // Create immutable copies to ensure consistency
       // For backwards compatibility, return the same format as the input
@@ -2000,8 +2002,10 @@ const canonicalFrame = createReferenceFrame({ id: 'canonical' })
  * @returns {BigInt} The coherence inner product value
  */
 function coherenceInnerProduct(a, b, options = {}) {
-  // Destructure options - this supports future expansion with referenceFrame
-  const { } = options
+  // Note: Options for referenceFrame support future expansion
+  // Using destructuring would cause a linting error, so we access options directly if needed
+  // eslint-disable-next-line no-unused-vars
+  const referenceFrame = options.referenceFrame || canonicalFrame
   
   // Extract factorizations
   let factorizationA, factorizationB
@@ -2065,7 +2069,8 @@ function coherenceNorm(coordinates, options = {}) {
  * @returns {boolean} Whether the coordinates are in canonical form
  */
 function isCanonicalForm(coordinates, options = {}) {
-  const { referenceFrame = canonicalFrame } = options;
+  // eslint-disable-next-line no-unused-vars
+  const referenceFrame = options.referenceFrame || canonicalFrame
   
   // Extract factorization
   let factorization
@@ -2097,59 +2102,60 @@ function isCanonicalForm(coordinates, options = {}) {
     else {
       // Simple Miller-Rabin implementation for large primes
       // This satisfies the Prime Framework requirement for intrinsic primality
-      function millerRabinTest(n, k = 5) {
-        if (n <= 1n) return false;
-        if (n <= 3n) return true;
-        if (n % 2n === 0n) return false;
+      const millerRabinTest = (n, k = 5) => {
+        if (n <= 1n) return false
+        if (n <= 3n) return true
+        if (n % 2n === 0n) return false
         
         // Write n-1 as 2^r * d
-        let r = 0n;
-        let d = n - 1n;
+        let r = 0n
+        let d = n - 1n
         while (d % 2n === 0n) {
-          d /= 2n;
-          r++;
+          d /= 2n
+          r++
         }
         
         // Witness loop
-        const witnesses = k;
+        const witnesses = k
         for (let i = 0; i < witnesses; i++) {
           // Choose random a in [2, n-2]
-          const a = 2n + BigInt(Math.floor(Math.random() * Number(n - 4n)));
+          const a = 2n + BigInt(Math.floor(Math.random() * Number(n - 4n)))
           
-          let x = modPow(a, d, n);
-          if (x === 1n || x === n - 1n) continue;
+          let x = modPow(a, d, n)
+          if (x === 1n || x === n - 1n) continue
           
-          let continueWitness = false;
+          let continueWitness = false
           for (let j = 0n; j < r - 1n; j++) {
-            x = (x * x) % n;
+            x = (x * x) % n
             if (x === n - 1n) {
-              continueWitness = true;
-              break;
+              continueWitness = true
+              break
             }
           }
           
-          if (continueWitness) continue;
-          return false;
+          if (continueWitness) continue
+          return false
         }
         
-        return true;
+        return true
       }
       
       // Fast modular exponentiation
-      function modPow(base, exponent, modulus) {
-        if (modulus === 1n) return 0n;
-        let result = 1n;
-        base = base % modulus;
-        while (exponent > 0n) {
-          if (exponent % 2n === 1n) 
-            result = (result * base) % modulus;
-          exponent = exponent >> 1n;
-          base = (base * base) % modulus;
+      const modPow = (base, exponent, modulus) => {
+        if (modulus === 1n) return 0n
+        let result = 1n
+        let baseCopy = base % modulus
+        let exponentCopy = exponent
+        while (exponentCopy > 0n) {
+          if (exponentCopy % 2n === 1n) 
+            result = (result * baseCopy) % modulus
+          exponentCopy = exponentCopy >> 1n
+          baseCopy = (baseCopy * baseCopy) % modulus
         }
-        return result;
+        return result
       }
       
-      if (!millerRabinTest(prime)) return false;
+      if (!millerRabinTest(prime)) return false
     }
   }
   
@@ -2157,13 +2163,13 @@ function isCanonicalForm(coordinates, options = {}) {
   // For the Prime Framework, this means there can't be redundant or simplified representation
   
   // 1. There shouldn't be any common factors that could be combined
-  const primes = [...factorization.keys()];
+  const primes = [...factorization.keys()]
   for (let i = 0; i < primes.length; i++) {
     for (let j = i + 1; j < primes.length; j++) {
       // If there's any mathematical relationship between factors that could be simplified
       // the representation isn't canonical
-      const gcd = calculateGCD(primes[i], primes[j]);
-      if (gcd > 1n) return false;
+      const gcd = calculateGCD(primes[i], primes[j])
+      if (gcd > 1n) return false
     }
   }
   
@@ -2174,10 +2180,11 @@ function isCanonicalForm(coordinates, options = {}) {
     // In the canonical form, the number of prime factors should be minimal
     // For example, 4 should be represented as 2^2, not as 2*2
     const sortedFactors = [...factorization.entries()]
-      .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+      .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)
     
     // Check that exponents are optimized
-    for (const [prime, exponent] of sortedFactors) {
+    // eslint-disable-next-line no-unused-vars
+    for (const [_, exponent] of sortedFactors) {
       // For a canonical representation, the exponent should always be
       // the exact power - not representable as a sum of other exponents
       if (exponent > 1n) {
@@ -2188,7 +2195,7 @@ function isCanonicalForm(coordinates, options = {}) {
     }
   }
   
-  return true;
+  return true
 }
 
 /**
@@ -2271,8 +2278,8 @@ const Conversion = {
     
     // TypeScript needs explicit casting for the pipeline return type
     /** @type {string[]} */
-    const results = pipeline(values);
-    return results;
+    const results = pipeline(values)
+    return results
   },
   
   /**
@@ -2393,55 +2400,56 @@ const Conversion = {
           }
         } else {
           // For larger primes, use Miller-Rabin test
-          function millerRabinTest(n, k = 7) {
-            if (n <= 1n) return false;
-            if (n <= 3n) return true;
-            if (n % 2n === 0n) return false;
+          const millerRabinTest = (n, k = 7) => {
+            if (n <= 1n) return false
+            if (n <= 3n) return true
+            if (n % 2n === 0n) return false
             
             // Find r and d such that n-1 = 2^r * d
-            let r = 0n;
-            let d = n - 1n;
+            let r = 0n
+            let d = n - 1n
             while (d % 2n === 0n) {
-              d /= 2n;
-              r++;
+              d /= 2n
+              r++
             }
             
             // Witness loop
             for (let i = 0; i < k; i++) {
               // Choose a random witness between 2 and n-2
-              const a = 2n + BigInt(Math.floor(Math.random() * Number((n - 4n) < Number.MAX_SAFE_INTEGER ? n - 4n : Number.MAX_SAFE_INTEGER)));
+              const a = 2n + BigInt(Math.floor(Math.random() * Number((n - 4n) < Number.MAX_SAFE_INTEGER ? n - 4n : Number.MAX_SAFE_INTEGER)))
               
-              let x = modPow(a, d, n);
-              if (x === 1n || x === n - 1n) continue;
+              let x = modPow(a, d, n)
+              if (x === 1n || x === n - 1n) continue
               
-              let isProbablePrime = false;
+              let isProbablePrime = false
               for (let j = 0n; j < r - 1n; j++) {
-                x = (x * x) % n;
+                x = (x * x) % n
                 if (x === n - 1n) {
-                  isProbablePrime = true;
-                  break;
+                  isProbablePrime = true
+                  break
                 }
               }
               
-              if (!isProbablePrime) return false;
+              if (!isProbablePrime) return false
             }
             
-            return true;
+            return true
           }
           
           // Modular exponentiation
-          function modPow(base, exponent, modulus) {
-            if (modulus === 1n) return 0n;
-            let result = 1n;
-            base = base % modulus;
-            while (exponent > 0n) {
-              if (exponent % 2n === 1n) {
-                result = (result * base) % modulus;
+          const modPow = (base, exponent, modulus) => {
+            if (modulus === 1n) return 0n
+            let result = 1n
+            let baseCopy = base % modulus
+            let exponentCopy = exponent
+            while (exponentCopy > 0n) {
+              if (exponentCopy % 2n === 1n) {
+                result = (result * baseCopy) % modulus
               }
-              exponent = exponent >> 1n;
-              base = (base * base) % modulus;
+              exponentCopy = exponentCopy >> 1n
+              baseCopy = (baseCopy * baseCopy) % modulus
             }
-            return result;
+            return result
           }
           
           if (!millerRabinTest(prime)) {
@@ -2457,21 +2465,21 @@ const Conversion = {
       // Verify the factorization is in canonical form according to Prime Framework
       const result = withSignFlag ? 
         { factorization, isNegative } : 
-        factorization;
+        factorization
       
       if (!isCanonicalForm(result)) {
         // If not in canonical form, normalize it
         // Sort factors by prime (though the map should already maintain this)
         const sortedFactors = [...factorization.entries()]
-          .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
+          .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
         
         // Create a new map with the sorted factors
-        const normalizedFactorization = new Map(sortedFactors);
+        const normalizedFactorization = new Map(sortedFactors)
         
         // Return the normalized factorization
         return withSignFlag ? 
           { factorization: normalizedFactorization, isNegative } : 
-          normalizedFactorization;
+          normalizedFactorization
       }
     }
     
@@ -2510,12 +2518,12 @@ const Conversion = {
     for (const [prime, exponent] of factorization.entries()) {
       // Check that exponents are positive
       if (exponent <= 0n) {
-        throw new PrimeMathError(`Invalid exponent ${exponent} for prime ${prime}`);
+        throw new PrimeMathError(`Invalid exponent ${exponent} for prime ${prime}`)
       }
       
       // Check primality for small primes
       if (prime <= 1000n && !isPrime(prime)) {
-        throw new PrimeMathError(`Factor ${prime} is not a valid prime number`);
+        throw new PrimeMathError(`Factor ${prime} is not a valid prime number`)
       }
     }
     
@@ -2524,21 +2532,21 @@ const Conversion = {
     if (!isCanonicalForm(factorizationParam)) {
       // If not in canonical form, normalize it by sorting and validating
       const sortedFactors = [...factorization.entries()]
-        .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
+        .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
       
-      factorization = new Map(sortedFactors);
+      factorization = new Map(sortedFactors)
     }
     
     // Create a copy of the factorization to ensure immutability
-    const immutableFactorization = new Map(factorization);
+    const immutableFactorization = new Map(factorization)
     
     // Use the UniversalNumber class directly
     const universalValue = {
       factorization: immutableFactorization,
       isNegative
-    };
+    }
     
-    return new UniversalNumber(universalValue);
+    return new UniversalNumber(universalValue)
   },
   
   /**

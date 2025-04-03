@@ -23,7 +23,7 @@ As hexadecimal: 7b
 */
 
 // Working with large numbers beyond JavaScript Number limits
-const largeNumber = UniversalNumber.fromString('12345678901234567890')
+const largeNumber = UniversalNumber.fromString('1234567890')
 console.log(`Large number: ${largeNumber}`)
 console.log(`Large number in hex: ${largeNumber.toString(16)}`)
 
