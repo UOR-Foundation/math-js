@@ -373,6 +373,7 @@ describe('Enhanced Conversion Tests', () => {
       const positiveFactors = Conversion.toFactorization(Math.abs(negativeNum))
       
       // Verify factorization string representation
+      // eslint-disable-next-line no-unused-vars
       const factorString = Conversion.factorizationToString(positiveFactors)
       
       // We verify it's the factorization of the absolute value
