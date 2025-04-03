@@ -1127,10 +1127,10 @@ function fromString(str, base = 10) {
  * @param {Object} [options] - Additional options
  * @param {boolean} [options.leastSignificantFirst=false] - Order of digits
  * @param {boolean} [options.includeSign=false] - Whether to include sign information in the output
- * @returns {{digits: number[], isNegative?: boolean}} Array of digits in the specified base and sign info if requested
  * @typedef {Object} DigitResult
  * @property {number[]} digits - Array of digits in the specified base
  * @property {boolean} [isNegative] - Whether the value is negative (only included if includeSign is true)
+ * @returns {DigitResult} Array of digits in the specified base and sign info if requested
  */
 function getDigitsFromValue(value, base = 10, options = {}) {
   const { leastSignificantFirst = false, includeSign = false } = options
