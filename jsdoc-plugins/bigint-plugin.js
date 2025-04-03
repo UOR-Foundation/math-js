@@ -1,5 +1,5 @@
 /**
- * JSDoc plugin to handle BigInt serialization
+ * JSDoc plugin to handle BigInt serialization in documentation
  */
 
 exports.handlers = {
