@@ -1,4 +1,4 @@
-# Factorization Module Enhancements for Prime Framework
+# Factorization and Prime Framework Module Enhancements
 
 The Factorization module is a core component of the Math-JS library, providing efficient algorithms for converting integers into their prime factorization (universal coordinates). This module implements the Prime Framework's requirement for unique, canonical factorizations that serve as universal coordinates for numbers. The enhancements described in this document have been implemented to significantly improve performance, efficiency, and flexibility while maintaining strict adherence to the Prime Framework's specifications.
 
@@ -194,6 +194,118 @@ factorizationCache.clear();
 
 4. **Partial Factorization**: For numbers with hundreds of digits, complete factorization may be infeasible. In such cases, enable the `partialFactorization` option.
 
+## Prime Framework Algebraic Structure Enhancement
+
+The Prime Framework establishes a mathematical foundation where each number's representation is based on its prime factorization, providing a universal coordinate system. The implemented enhancements maintain this structure while adding powerful algebraic operations.
+
+### Coherence Inner Product
+
+The coherence inner product measures the geometric alignment between two numbers in the Prime Framework's reference fiber algebra. For two numbers with prime factorizations:
+- a = p₁ᵃ¹ × p₂ᵃ² × ... × pₙᵃⁿ
+- b = p₁ᵇ¹ × p₂ᵇ² × ... × pₙᵇⁿ
+
+The coherence inner product is defined as:
+```
+⟨a, b⟩ = ∑ pᵢ × aᵢ × bᵢ
+```
+
+This provides a measure of how "aligned" the two numbers are in the Prime Framework's coordinate system.
+
+Usage:
+```javascript
+const innerProduct = PrimeMath.coherenceInnerProduct(12n, 18n);
+// Returns 10n (since 12 = 2² × 3, 18 = 2 × 3², and 2×2×1 + 3×1×2 = 10)
+```
+
+### Coherence Norm
+
+The coherence norm measures the "magnitude" of a number in the Prime Framework. It is defined as the inner product of a number with itself:
+```
+‖a‖ = ⟨a, a⟩ = ∑ pᵢ × aᵢ²
+```
+
+Usage:
+```javascript
+const norm = PrimeMath.coherenceNorm(12n);
+// Returns 12n (since 12 = 2² × 3, and 2×2² + 3×1² = 11)
+```
+
+### Coherence Distance
+
+The distance between two numbers in the Prime Framework's algebraic structure is defined as the norm of their difference:
+```
+d(a, b) = ‖a - b‖
+```
+
+Usage:
+```javascript
+const distance = PrimeMath.coherenceDistance(10n, 7n);
+// Returns the coherence norm of 3n
+```
+
+### Canonical Form Optimization
+
+The Prime Framework ensures each number has a unique canonical representation with minimal norm. The `optimizeToCanonicalForm` function ensures this property:
+
+```javascript
+const canonical = PrimeMath.optimizeToCanonicalForm(24n);
+// Returns the canonical representation of 24 (2³ × 3)
+```
+
+## Advanced Number Theory Functions
+
+### Möbius Function
+
+The Möbius function μ(n) is a number-theoretic function defined as:
+- μ(1) = 1
+- μ(n) = 0 if n has a squared prime factor
+- μ(n) = (-1)ᵏ if n is a product of k distinct primes
+
+```javascript
+const result = PrimeMath.moebius(30n);
+// Returns -1n (since 30 = 2 × 3 × 5, with 3 distinct primes)
+```
+
+### Mersenne Prime Testing
+
+Mersenne primes are prime numbers of the form 2ᵖ - 1, where p is also prime.
+
+```javascript
+const isMersenne = PrimeMath.isMersennePrime(127n);
+// Returns true (since 127 = 2⁷ - 1, and 7 is prime)
+```
+
+### Legendre and Jacobi Symbols
+
+The Legendre symbol (a/p) determines whether a is a quadratic residue modulo p (where p is prime).
+The Jacobi symbol extends this to composite moduli.
+
+```javascript
+const legendreValue = PrimeMath.legendreSymbol(3, 7);
+// Returns -1 (since 3 is not a quadratic residue modulo 7)
+
+const jacobiValue = PrimeMath.jacobiSymbol(2, 15);
+// Returns 1
+```
+
+### Discrete Logarithm
+
+The discrete logarithm problem involves finding x such that gˣ ≡ h (mod p).
+
+```javascript
+const log = PrimeMath.discreteLog(2, 3, 5);
+// Returns 3n (since 2³ ≡ 3 (mod 5))
+```
+
+### Nth Prime Function
+
+Retrieves the nth prime number in sequence.
+
+```javascript
+const fifth = PrimeMath.nthPrime(5);
+// Returns 11n (the 5th prime number)
+```
+
 ## Examples
 
 ### Basic Factorization
@@ -213,48 +325,42 @@ console.log(number);
 // 123456789n
 ```
 
-### Advanced Factorization
+### Prime Framework Operations
 
 ```javascript
-const { factorizeOptimal } = require('math-js').Factorization;
+const PrimeMath = require('math-js').PrimeMath;
 
-// Factorize a large number with advanced options
-const veryLargeNumber = BigInt("1234567890123456789012345678901234567890");
-const factors = factorizeOptimal(veryLargeNumber, {
-  advanced: true,
-  partialFactorization: true,
-  algorithmParams: {
-    ecmCurves: 50,
-    ecmB1: 1000000,
-    qsFactorBase: 300
-  }
-});
+// Check coherence between numbers
+const norm12 = PrimeMath.coherenceNorm(12n);
+console.log(norm12);  // 8n + 3n = 11n
 
-// Check if the factorization is complete
-const { isFactorizationComplete } = require('math-js').Factorization;
-const complete = isFactorizationComplete(factors, veryLargeNumber);
-console.log(`Factorization complete: ${complete}`);
+// Compute Legendre symbol for quadratic residue
+const isQuadraticResidue = PrimeMath.legendreSymbol(2, 7);
+console.log(isQuadraticResidue);  // 1
+
+// Find discrete logarithm: 3^x ≡ 7 (mod 11)
+const discreteLog = PrimeMath.discreteLog(3, 7, 11);
+console.log(discreteLog);  // Returns the value of x
+
+// Check if a number is a Mersenne prime
+const isMersenne = PrimeMath.isMersennePrime(31);
+console.log(isMersenne);  // true
 ```
 
-### Parallel Factorization
+### Advanced Algebraic Structure
 
 ```javascript
-const { factorizeParallel } = require('math-js').Factorization;
+const PrimeMath = require('math-js').PrimeMath;
 
-// Factorize using parallel processing
-const factors = factorizeParallel(BigInt("9876543210987654321"), {
-  workerCount: 4,
-  useWorkStealing: true
-});
+// Complex coherence inner product example
+const a = 60n;  // 2^2 * 3 * 5
+const b = 42n;  // 2 * 3 * 7
+const innerProduct = PrimeMath.coherenceInnerProduct(a, b);
+console.log(innerProduct);  // 2*2*1 + 3*1*1 = 7
 
-// Convert factorization to array format
-const { factorMapToArray } = require('math-js').Factorization;
-const factorsArray = factorMapToArray(factors);
-console.log(factorsArray);
-// [
-//   { prime: 3n, exponent: 1n },
-//   { prime: 7n, exponent: 1n },
-//   { prime: 11n, exponent: 1n },
-//   ...
-// ]
+// Compare canonical forms of numbers
+const num1 = 36n;  // 2^2 * 3^2
+const num2 = 36n;  // Same value, potentially different representations
+const areCoherent = PrimeMath.areCoherent(num1, num2);
+console.log(areCoherent);  // true
 ```

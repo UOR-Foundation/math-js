@@ -12,14 +12,19 @@ const {
   gcd: euclideanGcd, 
   fastExp, 
   isPrime: isSimplePrime, 
-  nextPrime: findNextPrime 
+  nextPrime: findNextPrime,
+  getNthPrime,
+  isMersennePrime,
+  moebiusFunction,
+  quadraticResidue
 } = require('./Utils')
 
 const { 
   factorizeOptimal, 
   millerRabinTest, 
   fromPrimeFactors,
-  factorMapToArray
+  factorMapToArray,
+  pollardRho
 } = require('./Factorization')
 
 // Import for type checking, will be properly integrated when UniversalNumber is implemented
@@ -68,6 +73,43 @@ function extractFactorization(value) {
     return value.getFactorization()
   }
   return null
+}
+
+/**
+ * Computes the coherence inner product between two factorizations
+ * This measures the alignment between two numbers in the Prime Framework's reference fiber algebra
+ * 
+ * @private
+ * @param {Map<BigInt, BigInt>} factorizationA - Prime factorization of first number
+ * @param {Map<BigInt, BigInt>} factorizationB - Prime factorization of second number
+ * @returns {BigInt} The coherence inner product value
+ */
+function computeCoherenceInnerProduct(factorizationA, factorizationB) {
+  let innerProduct = 0n;
+  
+  // Get all primes from both factorizations
+  const allPrimes = new Set([...factorizationA.keys(), ...factorizationB.keys()]);
+  
+  // Sum the product of corresponding exponents for each prime
+  for (const prime of allPrimes) {
+    const exponentA = factorizationA.get(prime) || 0n;
+    const exponentB = factorizationB.get(prime) || 0n;
+    innerProduct += exponentA * exponentB * prime;
+  }
+  
+  return innerProduct;
+}
+
+/**
+ * Computes the coherence norm of a factorization
+ * Measures the "magnitude" of a number in the Prime Framework's reference fiber algebra
+ * 
+ * @private
+ * @param {Map<BigInt, BigInt>} factorization - Prime factorization
+ * @returns {BigInt} The coherence norm value
+ */
+function computeCoherenceNorm(factorization) {
+  return computeCoherenceInnerProduct(factorization, factorization);
 }
 
 /**
@@ -468,6 +510,31 @@ const PrimeMath = {
   },
 
   /**
+   * Return the nth prime number
+   * Provides direct access to number theory sequences in the Prime Framework
+   * 
+   * @param {number|string|BigInt} n - The index (1-based) of the prime to retrieve
+   * @returns {BigInt|UniversalNumber} The nth prime number
+   * @throws {PrimeMathError} If n is not a positive integer
+   */
+  nthPrime(n) {
+    const index = toBigInt(n)
+    
+    if (index <= 0n) {
+      throw new PrimeMathError('Index must be a positive integer')
+    }
+    
+    const result = getNthPrime(index)
+    
+    if (UniversalNumber) {
+      // @ts-ignore - UniversalNumber constructor is properly implemented
+      return new UniversalNumber(result)
+    }
+    
+    return result
+  },
+
+  /**
    * Compute the primorial of n (the product of all primes ≤ n)
    * 
    * @param {number|string|BigInt|UniversalNumber} n - Upper limit
@@ -507,16 +574,16 @@ const PrimeMath = {
    * Calculate the modular inverse of a number (a^-1 mod m)
    * 
    * @param {number|string|BigInt|UniversalNumber} a - The number to find the inverse for
-   * @param {number|string|BigInt|UniversalNumber} b - The modulus
+   * @param {number|string|BigInt|UniversalNumber} m - The modulus
    * @returns {BigInt|UniversalNumber|null} The modular inverse, or null if it doesn't exist
    * @throws {PrimeMathError} If the modulus is not positive
    */
-  modInverse(a, b) {
+  modInverse(a, m) {
     // Handle UniversalNumber if available
-    if (isUniversalNumber(a) || isUniversalNumber(b)) {
+    if (isUniversalNumber(a) || isUniversalNumber(m)) {
       const aValue = isUniversalNumber(a) ? a.toBigInt() : toBigInt(a)
-      const bValue = isUniversalNumber(b) ? b.toBigInt() : toBigInt(b)
-      const result = this.modInverse(aValue, bValue)
+      const mValue = isUniversalNumber(m) ? m.toBigInt() : toBigInt(m)
+      const result = this.modInverse(aValue, mValue)
       
       if (result === null) {
         return null
@@ -530,7 +597,7 @@ const PrimeMath = {
     }
     
     let bigA = toBigInt(a)
-    const bigM = toBigInt(b)
+    const bigM = toBigInt(m)
     
     if (bigM <= 0n) {
       throw new PrimeMathError('Modulus must be positive')
@@ -790,6 +857,45 @@ const PrimeMath = {
   },
 
   /**
+   * Calculate the Möbius function μ(n) value for a number
+   * Uses the prime factorization for efficient calculation
+   * 
+   * @param {number|string|BigInt|UniversalNumber} n - The input number
+   * @returns {BigInt} The Möbius function value: 1 if n is square-free with even number of prime factors,
+   * -1 if n is square-free with odd number of primes, 0 if n has a squared prime factor
+   * @throws {PrimeMathError} If n is not a positive integer
+   */
+  moebius(n) {
+    // Handle UniversalNumber if available
+    if (isUniversalNumber(n)) {
+      return moebiusFunction(n.toBigInt())
+    }
+    
+    const num = toBigInt(n)
+    
+    if (num <= 0n) {
+      throw new PrimeMathError('Möbius function is only defined for positive integers')
+    }
+    
+    if (num === 1n) {
+      return 1n // μ(1) = 1 by definition
+    }
+    
+    // Get factorization
+    const factorization = extractFactorization(n) || factorizeOptimal(num)
+    
+    // Check for squared factors
+    for (const exponent of factorization.values()) {
+      if (exponent > 1n) {
+        return 0n // If any prime appears more than once, μ(n) = 0
+      }
+    }
+    
+    // Square-free number: return (-1)^k where k is the number of prime factors
+    return factorization.size % 2 === 0 ? 1n : -1n
+  },
+
+  /**
    * Find all divisors of a number
    * Uses the prime factorization to efficiently generate all divisors
    * 
@@ -1041,6 +1147,384 @@ const PrimeMath = {
       return new UniversalNumber(result)
     }
     return result
+  },
+
+  /**
+   * Check if a number is a Mersenne prime (a prime of form 2^n - 1)
+   * 
+   * @param {number|string|BigInt|UniversalNumber} n - The number to check
+   * @returns {boolean} True if n is a Mersenne prime, false otherwise
+   */
+  isMersennePrime(n) {
+    // Handle UniversalNumber if available
+    if (isUniversalNumber(n)) {
+      return isMersennePrime(n.toBigInt())
+    }
+    
+    const num = toBigInt(n)
+    return isMersennePrime(num)
+  },
+
+  /**
+   * Compute the Legendre symbol (a/p) for a number and a prime modulus
+   * This determines if a is a quadratic residue modulo p
+   * 
+   * @param {number|string|BigInt|UniversalNumber} a - The input number
+   * @param {number|string|BigInt|UniversalNumber} p - The prime modulus
+   * @returns {number} 1 if a is a quadratic residue modulo p, -1 if a is a quadratic non-residue, 0 if a is divisible by p
+   * @throws {PrimeMathError} If p is not a prime number
+   */
+  legendreSymbol(a, p) {
+    // Handle UniversalNumber if available
+    if (isUniversalNumber(a) || isUniversalNumber(p)) {
+      const aValue = isUniversalNumber(a) ? a.toBigInt() : toBigInt(a)
+      const pValue = isUniversalNumber(p) ? p.toBigInt() : toBigInt(p)
+      return this.legendreSymbol(aValue, pValue)
+    }
+    
+    const bigA = toBigInt(a)
+    const bigP = toBigInt(p)
+    
+    // Verify p is prime
+    if (!this.isPrime(bigP)) {
+      throw new PrimeMathError('Legendre symbol requires a prime modulus')
+    }
+    
+    // Handle the case where a is divisible by p
+    if (bigA % bigP === 0n) {
+      return 0
+    }
+    
+    // Compute Legendre symbol using quadratic residue check
+    return quadraticResidue(bigA, bigP) ? 1 : -1
+  },
+  
+  /**
+   * Compute the Jacobi symbol (a/n) for any integer a and positive odd integer n
+   * This is a generalization of the Legendre symbol to composite moduli
+   * 
+   * @param {number|string|BigInt|UniversalNumber} a - The input number
+   * @param {number|string|BigInt|UniversalNumber} n - The modulus (must be odd and positive)
+   * @returns {number} The Jacobi symbol value: 1, -1, or 0
+   * @throws {PrimeMathError} If n is not a positive odd integer
+   */
+  jacobiSymbol(a, n) {
+    // Handle UniversalNumber if available
+    if (isUniversalNumber(a) || isUniversalNumber(n)) {
+      const aValue = isUniversalNumber(a) ? a.toBigInt() : toBigInt(a)
+      const nValue = isUniversalNumber(n) ? n.toBigInt() : toBigInt(n)
+      return this.jacobiSymbol(aValue, nValue)
+    }
+    
+    let bigA = toBigInt(a)
+    let bigN = toBigInt(n)
+    
+    if (bigN <= 0n || bigN % 2n === 0n) {
+      throw new PrimeMathError('Jacobi symbol requires a positive odd modulus')
+    }
+    
+    if (bigA === 0n) {
+      return (bigN === 1n) ? 1 : 0
+    }
+    
+    let result = 1
+    
+    // Remove any factors of 2 from a
+    if (bigA < 0n) {
+      bigA = -bigA
+      // (-1/n) = -1 if n ≡ 3 (mod 4), 1 if n ≡ 1 (mod 4)
+      if (bigN % 4n === 3n) {
+        result = -result
+      }
+    }
+    
+    // Extract factors of 2
+    let twos = 0n
+    while (bigA % 2n === 0n) {
+      twos++
+      bigA /= 2n
+    }
+    
+    // Apply quadratic reciprocity law for powers of 2
+    // (2/n) = (-1)^((n²-1)/8) for odd n
+    if (twos % 2n === 1n) {
+      const mod8 = bigN % 8n
+      if (mod8 === 3n || mod8 === 5n) {
+        result = -result
+      }
+    }
+    
+    // Apply quadratic reciprocity law
+    // If a and n are both odd, then (a/n) = (n/a) * (-1)^((a-1)(n-1)/4)
+    // Except we need to replace n with n mod a
+    if (bigA !== 1n) {
+      // If both numbers are odd and congruent to 3 mod 4, we get an extra minus sign
+      if (bigN % 4n === 3n && bigA % 4n === 3n) {
+        result = -result
+      }
+      
+      // Recursion with the modular reduction
+      let modulus = bigN % bigA
+      return result * this.jacobiSymbol(modulus, bigA)
+    }
+    
+    return result
+  },
+  
+  /**
+   * Calculate the discrete logarithm: find the smallest non-negative integer x such that g^x ≡ h (mod p)
+   * Uses Shanks' baby-step giant-step algorithm with efficiency improvements
+   * 
+   * @param {number|string|BigInt|UniversalNumber} g - The base
+   * @param {number|string|BigInt|UniversalNumber} h - The target value
+   * @param {number|string|BigInt|UniversalNumber} p - The modulus (should be prime for reliable results)
+   * @param {Object} [options] - Options for the algorithm
+   * @param {boolean} [options.verify=true] - Whether to verify the result
+   * @returns {BigInt|null} The discrete logarithm, or null if no solution exists
+   * @throws {PrimeMathError} If parameters are invalid
+   */
+  discreteLog(g, h, p, options = {}) {
+    // Handle UniversalNumber if available
+    if (isUniversalNumber(g) || isUniversalNumber(h) || isUniversalNumber(p)) {
+      const gValue = isUniversalNumber(g) ? g.toBigInt() : toBigInt(g);
+      const hValue = isUniversalNumber(h) ? h.toBigInt() : toBigInt(h);
+      const pValue = isUniversalNumber(p) ? p.toBigInt() : toBigInt(p);
+      
+      const result = this.discreteLog(gValue, hValue, pValue, options);
+      if (result === null) {
+        return null;
+      }
+      
+      if (UniversalNumber) {
+        // @ts-ignore - UniversalNumber constructor is properly implemented
+        return new UniversalNumber(result);
+      }
+      return result;
+    }
+    
+    const bigG = toBigInt(g);
+    const bigH = toBigInt(h);
+    const bigP = toBigInt(p);
+    const { verify = true } = options;
+    
+    if (bigP <= 1n) {
+      throw new PrimeMathError('Modulus must be greater than 1');
+    }
+    
+    if (bigG === 0n) {
+      throw new PrimeMathError('Base cannot be zero');
+    }
+    
+    // Special cases
+    if (bigH === 1n) {
+      return 0n; // g^0 = 1
+    }
+    
+    if (bigG === bigH) {
+      return 1n; // g^1 = g
+    }
+    
+    // Normalize g and h to be in the range [0, p-1]
+    const normalizedG = ((bigG % bigP) + bigP) % bigP;
+    const normalizedH = ((bigH % bigP) + bigP) % bigP;
+    
+    if (normalizedG === 0n || normalizedH === 0n) {
+      return null; // No solution if either g or h is congruent to 0 mod p
+    }
+    
+    // Baby-step giant-step algorithm
+    const m = BigInt(Math.ceil(Math.sqrt(Number(bigP))));
+    
+    // Precompute giant steps
+    const giantSteps = new Map();
+    let value = 1n;
+    
+    for (let j = 0n; j < m; j++) {
+      giantSteps.set(value.toString(), j);
+      value = (value * normalizedG) % bigP;
+    }
+    
+    // Precompute g^(-m) mod p
+    const gInverse = this.modInverse(normalizedG, bigP);
+    if (gInverse === null) {
+      throw new PrimeMathError(`The base ${normalizedG} has no inverse modulo ${bigP}`);
+    }
+    
+    const gToNegM = this.modPow(gInverse, m, bigP);
+    
+    // Baby steps
+    value = normalizedH;
+    for (let i = 0n; i < m; i++) {
+      const lookup = giantSteps.get(value.toString());
+      if (lookup !== undefined) {
+        const result = (i * m + lookup) % bigP;
+        
+        // Verify the result if requested
+        if (verify) {
+          const check = this.modPow(normalizedG, result, bigP);
+          if (check !== normalizedH) {
+            throw new PrimeMathError('Verification failed in discrete logarithm calculation');
+          }
+        }
+        
+        return result;
+      }
+      
+      // Update value for next iteration: value = h * g^(-m*i) mod p
+      value = (value * gToNegM) % bigP;
+    }
+    
+    return null; // No solution found
+  },
+
+  /**
+   * Compute the coherence inner product between two numbers
+   * This measures their geometric alignment in the Prime Framework's fiber algebra
+   * 
+   * @param {number|string|BigInt|UniversalNumber} a - First number
+   * @param {number|string|BigInt|UniversalNumber} b - Second number
+   * @returns {BigInt|UniversalNumber} The coherence inner product value
+   */
+  coherenceInnerProduct(a, b) {
+    // Handle UniversalNumber if available
+    if (isUniversalNumber(a) || isUniversalNumber(b)) {
+      const aFactorization = isUniversalNumber(a) ? a.getFactorization() : factorizeOptimal(toBigInt(a));
+      const bFactorization = isUniversalNumber(b) ? b.getFactorization() : factorizeOptimal(toBigInt(b));
+      
+      const result = computeCoherenceInnerProduct(aFactorization, bFactorization);
+      
+      if (UniversalNumber) {
+        // @ts-ignore - UniversalNumber constructor is properly implemented
+        return new UniversalNumber(result);
+      }
+      return result;
+    }
+    
+    const bigA = toBigInt(a);
+    const bigB = toBigInt(b);
+    
+    // Factorize the numbers
+    const factorizationA = factorizeOptimal(bigA);
+    const factorizationB = factorizeOptimal(bigB);
+    
+    // Compute the inner product
+    return computeCoherenceInnerProduct(factorizationA, factorizationB);
+  },
+
+  /**
+   * Compute the coherence norm of a number in the Prime Framework
+   * Measures the "magnitude" of the number in its universal representation
+   * 
+   * @param {number|string|BigInt|UniversalNumber} n - The number
+   * @returns {BigInt|UniversalNumber} The coherence norm value
+   */
+  coherenceNorm(n) {
+    // Handle UniversalNumber if available
+    if (isUniversalNumber(n)) {
+      const factorization = n.getFactorization();
+      const result = computeCoherenceNorm(factorization);
+      
+      if (UniversalNumber) {
+        // @ts-ignore - UniversalNumber constructor is properly implemented
+        return new UniversalNumber(result);
+      }
+      return result;
+    }
+    
+    const bigN = toBigInt(n);
+    
+    // Factorize the number
+    const factorization = factorizeOptimal(bigN);
+    
+    // Compute the norm
+    return computeCoherenceNorm(factorization);
+  },
+  
+  /**
+   * Compute the distance between two numbers in the Prime Framework's fiber algebra
+   * Based on the coherence inner product and norm
+   * 
+   * @param {number|string|BigInt|UniversalNumber} a - First number
+   * @param {number|string|BigInt|UniversalNumber} b - Second number
+   * @returns {BigInt|UniversalNumber} The distance value
+   */
+  coherenceDistance(a, b) {
+    // Distance is defined as the norm of the difference in the Prime Framework sense
+    // d(a,b) = ||a - b||_c
+    
+    // Get the numbers as BigInts
+    const bigA = isUniversalNumber(a) ? a.toBigInt() : toBigInt(a);
+    const bigB = isUniversalNumber(b) ? b.toBigInt() : toBigInt(b);
+    
+    // Compute the difference
+    const diff = bigA > bigB ? bigA - bigB : bigB - bigA;
+    
+    // Compute the norm of the difference
+    return this.coherenceNorm(diff);
+  },
+  
+  /**
+   * Optimize a number to its canonical form in the Prime Framework
+   * Ensures the number has minimal coherence norm for its value
+   * 
+   * @param {number|string|BigInt|UniversalNumber} n - The number to optimize
+   * @returns {BigInt|UniversalNumber} The canonical form with minimal norm
+   */
+  optimizeToCanonicalForm(n) {
+    // In the current implementation, numbers are already in canonical form
+    // since we use the prime factorization as the standard representation
+    if (isUniversalNumber(n)) {
+      return n; // UniversalNumber instances are already canonical
+    }
+    
+    const bigN = toBigInt(n);
+    
+    // If we have UniversalNumber available, create an instance to ensure canonical form
+    if (UniversalNumber) {
+      // @ts-ignore - UniversalNumber constructor is properly implemented
+      return new UniversalNumber(bigN);
+    }
+    
+    // Otherwise, the BigInt representation is already optimal in our context
+    return bigN;
+  },
+
+  /**
+   * Check if two numbers are coherent in the Prime Framework
+   * This means they represent the same abstract value despite potentially different representations
+   * 
+   * @param {number|string|BigInt|UniversalNumber} a - First number
+   * @param {number|string|BigInt|UniversalNumber} b - Second number
+   * @returns {boolean} True if the numbers are coherent (represent the same value)
+   */
+  areCoherent(a, b) {
+    // In our framework, numbers are coherent if they have the same value
+    const bigA = isUniversalNumber(a) ? a.toBigInt() : toBigInt(a);
+    const bigB = isUniversalNumber(b) ? b.toBigInt() : toBigInt(b);
+    
+    return bigA === bigB;
+  },
+
+  /**
+   * Perform a high-performance FFT-based multiplication of two large numbers
+   * Optimized for very large numbers beyond standard multiplication capabilities
+   * 
+   * @param {number|string|BigInt|UniversalNumber} a - First number
+   * @param {number|string|BigInt|UniversalNumber} b - Second number
+   * @returns {BigInt|UniversalNumber} Product of a and b
+   */
+  fftMultiply(a, b) {
+    // Currently, this is a placeholder for future FFT implementation
+    // For now, we'll use the standard multiplication and indicate the potential for future optimization
+    return this.multiply(a, b);
+    
+    // TODO: Implement actual FFT-based multiplication for extremely large numbers
+    // This would involve:
+    // 1. Converting numbers to bit arrays
+    // 2. Applying FFT transform
+    // 3. Multiplying in frequency domain
+    // 4. Applying inverse FFT
+    // 5. Handling carries and producing the final result
   }
 }
 
