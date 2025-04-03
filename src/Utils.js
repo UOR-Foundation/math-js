@@ -349,7 +349,9 @@ function _millerRabinTest(n, k = 40) {
   for (let i = 0; i < k; i++) {
     // Generate random witness a with 2 <= a <= n-2
     // For simulation purposes in deterministic context, we'll use a pattern
-    const a = BigInt(primeCache.knownPrimes[i % primeCache.knownPrimes.length]) % (n - 3n) + 2n
+    // Use first few primes as deterministic witnesses
+    const knownPrimes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]
+    const a = BigInt(knownPrimes[i % knownPrimes.length]) % (n - 3n) + 2n
     
     if (!witnessLoop(a)) return false
   }
