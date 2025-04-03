@@ -17,6 +17,18 @@ const Conversion = require('./Conversion')
  */
 
 /**
+ * @typedef {Object} FiberAlgebra
+ * @property {string} referencePoint - The reference point in manifold (default: "standard")
+ * @property {Map<number, Array<number>>} gradedComponents - The graded components (by base) of the representation
+ */
+
+/**
+ * @typedef {Object} ReferenceFrame
+ * @property {string} id - Unique identifier for the reference frame
+ * @property {Object} transformationRules - Rules for transforming between frames
+ */
+
+/**
  * Class representing a universal number in the Prime Framework
  * Stores numbers using their prime factorization (universal coordinates)
  * Provides exact arithmetic operations with no rounding errors
@@ -1298,6 +1310,607 @@ class UniversalNumber {
       return false
     }
   }
+}
+
+/**
+ * Calculate the coherence inner product between two UniversalNumber instances
+ * The coherence inner product is a positive-definite inner product that measures 
+ * consistency between different representations of the same abstract number
+ * 
+ * @param {UniversalNumber} a - First UniversalNumber
+ * @param {UniversalNumber} b - Second UniversalNumber
+ * @returns {UniversalNumber} The coherence inner product value
+ */
+UniversalNumber.innerProduct = function(a, b) {
+  if (!(a instanceof UniversalNumber) || !(b instanceof UniversalNumber)) {
+    throw new PrimeMathError('Both arguments must be UniversalNumber instances')
+  }
+
+  // Start with the base component (always present)
+  let result = new Map()
+  
+  // Combine the prime factors from both numbers to calculate inner product
+  const allPrimes = new Set([
+    ...a._factorization.keys(),
+    ...b._factorization.keys()
+  ])
+
+  // The coherence inner product is defined as the sum of products of corresponding components
+  // For prime factorization representation, we use the product of matching exponents
+  for (const prime of allPrimes) {
+    const aExp = a._factorization.get(prime) || 0n
+    const bExp = b._factorization.get(prime) || 0n
+    
+    // Only add to result if both have this prime factor
+    if (aExp > 0n && bExp > 0n) {
+      // Inner product component is the product of the exponents
+      result.set(prime, aExp * bExp)
+    }
+  }
+
+  // Return a UniversalNumber with the inner product components
+  return new UniversalNumber({
+    factorization: result,
+    isNegative: false // Inner product is always positive by definition
+  })
+}
+
+/**
+ * Calculate the coherence norm of a UniversalNumber
+ * The coherence norm measures how consistent a number's representation is
+ * A minimal-norm representation is the canonical form in the Prime Framework
+ * 
+ * @returns {UniversalNumber} The coherence norm value
+ */
+UniversalNumber.prototype.coherenceNorm = function() {
+  // The norm is the square root of the inner product with itself
+  const innerProduct = UniversalNumber.innerProduct(this, this)
+  
+  // For prime factorization, the norm-squared is the sum of squares of exponents
+  // We return the inner product directly as the squared norm value
+  return innerProduct
+}
+
+/**
+ * Check if this UniversalNumber is in minimal-norm canonical form
+ * In the Prime Framework, the minimal-norm representation is the unique canonical form
+ * 
+ * @returns {boolean} True if the number is in minimal-norm form
+ */
+UniversalNumber.prototype.isMinimalNorm = function() {
+  // In our implementation, UniversalNumbers are always normalized to canonical form
+  // So this is equivalent to checking if the normalization is correct
+  return this._verifyNormalization()
+}
+
+/**
+ * Calculate the coherence distance between this UniversalNumber and another
+ * The coherence distance measures how "far apart" two numbers are in the fiber algebra
+ * 
+ * @param {UniversalNumber} other - The other UniversalNumber
+ * @returns {UniversalNumber} The coherence distance
+ */
+UniversalNumber.prototype.coherenceDistance = function(other) {
+  if (!(other instanceof UniversalNumber)) {
+    throw new PrimeMathError('Argument must be a UniversalNumber instance')
+  }
+  
+  // The coherence distance is defined as the norm of the difference
+  const difference = this.subtract(other)
+  return difference.coherenceNorm()
+}
+
+/**
+ * Reference frame registry for the Prime Framework's algebraic structure
+ * Stores and manages the different reference frames in which numbers can be represented
+ * @private
+ */
+const _referenceFrameRegistry = {
+  /**
+   * The currently active reference frame
+   */
+  currentFrame: 'standard',
+  
+  /**
+   * Registry of all available reference frames
+   */
+  frames: new Map([
+    ['standard', {
+      id: 'standard',
+      transformationRules: {},
+      description: 'Standard reference frame for the Prime Framework'
+    }]
+  ]),
+  
+  /**
+   * Get the active reference frame
+   * @returns {ReferenceFrame} The active reference frame
+   */
+  getActiveFrame() {
+    return this.frames.get(this.currentFrame)
+  },
+  
+  /**
+   * Register a new reference frame
+   * @param {ReferenceFrame} frame - The frame to register
+   */
+  registerFrame(frame) {
+    if (!frame.id) {
+      throw new PrimeMathError('Reference frame must have an id')
+    }
+    this.frames.set(frame.id, frame)
+  },
+  
+  /**
+   * Set the active reference frame
+   * @param {string} frameId - The id of the frame to set as active
+   */
+  setActiveFrame(frameId) {
+    if (!this.frames.has(frameId)) {
+      throw new PrimeMathError(`Reference frame "${frameId}" not found`)
+    }
+    this.currentFrame = frameId
+  }
+}
+
+/**
+ * Get the currently active reference frame in the fiber algebra
+ * In the Prime Framework, numbers exist at a point on a smooth manifold M
+ * 
+ * @returns {string} The identifier of the active reference frame
+ */
+UniversalNumber.getActiveReferenceFrame = function() {
+  return _referenceFrameRegistry.currentFrame
+}
+
+/**
+ * Set the active reference frame for Prime Framework operations
+ * All numbers are interpreted relative to the current reference
+ * 
+ * @param {string} frameId - The identifier of the reference frame to activate
+ * @throws {PrimeMathError} If the reference frame doesn't exist
+ */
+UniversalNumber.setActiveReferenceFrame = function(frameId) {
+  _referenceFrameRegistry.setActiveFrame(frameId)
+}
+
+/**
+ * Register a new reference frame in the fiber algebra
+ * Used for advanced geometric interpretations of the Prime Framework
+ * 
+ * @param {ReferenceFrame} frame - The reference frame to register
+ * @throws {PrimeMathError} If the frame is invalid
+ */
+UniversalNumber.registerReferenceFrame = function(frame) {
+  _referenceFrameRegistry.registerFrame(frame)
+}
+
+/**
+ * Get this number's graded components in the fiber algebra (Clifford algebra)
+ * The graded components represent the number's digit expansions in various bases
+ * 
+ * @param {Object} options - Options for retrieving graded components
+ * @param {number[]} [options.bases=[2,10]] - The bases to include in the graded components
+ * @param {string} [options.referenceFrame] - Optional reference frame (defaults to active frame)
+ * @returns {Map<number, number[]>} Map of base to array of digits 
+ */
+UniversalNumber.prototype.getGradedComponents = function(options = {}) {
+  const bases = options.bases || [2, 10]
+  const refFrame = options.referenceFrame || _referenceFrameRegistry.currentFrame
+  
+  // Verify the reference frame exists
+  if (!_referenceFrameRegistry.frames.has(refFrame)) {
+    throw new PrimeMathError(`Reference frame "${refFrame}" not found`)
+  }
+  
+  // Get the digits in each requested base
+  const components = new Map()
+  for (const base of bases) {
+    if (base < 2 || base > 36) {
+      throw new PrimeMathError(`Base ${base} is not supported (must be 2-36)`)
+    }
+    
+    // Get the digit expansion in this base
+    components.set(base, this.getDigits(base, true))
+  }
+  
+  return components
+}
+
+/**
+ * Transform this UniversalNumber to a different reference frame
+ * Implements symmetry group action (G-action) on the reference manifold
+ * 
+ * @param {string} targetFrame - The reference frame to transform to
+ * @returns {UniversalNumber} The number transformed to the new reference frame
+ * @throws {PrimeMathError} If the target frame doesn't exist
+ */
+UniversalNumber.prototype.transformToFrame = function(targetFrame) {
+  // In the default implementation, the factorization remains the same
+  // regardless of the reference frame, as it's already canonical
+  // This is consistent with the Prime Framework invariance principle
+  
+  // Verify the target frame exists
+  if (!_referenceFrameRegistry.frames.has(targetFrame)) {
+    throw new PrimeMathError(`Reference frame "${targetFrame}" not found`)
+  }
+  
+  // The canonical prime factorization is invariant under reference frame transformations
+  // So we simply return a copy of the current UniversalNumber
+  return new UniversalNumber(this)
+}
+
+/**
+ * Implement lazy evaluation for arithmetic operations
+ * 
+ * @private
+ * @property {boolean} _isLazy - Whether this UniversalNumber uses lazy evaluation
+ * @property {Function|null} _lazyOperation - Function to execute when the value is needed
+ * @property {boolean} _isFactorizationComputed - Whether the factorization has been computed
+ */
+Object.defineProperties(UniversalNumber.prototype, {
+  '_isLazy': {
+    value: false,
+    writable: true,
+    enumerable: false,
+    configurable: false
+  },
+  '_lazyOperation': {
+    value: null,
+    writable: true,
+    enumerable: false,
+    configurable: false
+  },
+  '_isFactorizationComputed': {
+    value: true,
+    writable: true,
+    enumerable: false, 
+    configurable: false
+  }
+})
+
+/**
+ * Create a UniversalNumber with lazy evaluation
+ * 
+ * @param {Function} operation - Function to execute when the value is needed
+ * @returns {UniversalNumber} A lazily evaluated UniversalNumber
+ */
+UniversalNumber.lazy = function(operation) {
+  if (typeof operation !== 'function') {
+    throw new PrimeMathError('Lazy evaluation requires a function')
+  }
+  
+  const result = new UniversalNumber(1) // Placeholder value
+  result._isLazy = true
+  result._lazyOperation = operation
+  result._isFactorizationComputed = false
+  return result
+}
+
+/**
+ * Ensure the factorization is computed for a lazy UniversalNumber
+ * @private
+ */
+UniversalNumber.prototype._ensureComputed = function() {
+  if (this._isLazy && !this._isFactorizationComputed) {
+    const result = this._lazyOperation()
+    if (!(result instanceof UniversalNumber)) {
+      throw new PrimeMathError('Lazy operation must return a UniversalNumber')
+    }
+    
+    // Copy the computed value
+    this._factorization = result._factorization
+    this._isNegative = result._isNegative
+    this._isFactorizationComputed = true
+  }
+}
+
+// Override key methods to support lazy evaluation
+const originalToBigInt = UniversalNumber.prototype.toBigInt
+UniversalNumber.prototype.toBigInt = function() {
+  this._ensureComputed()
+  return originalToBigInt.call(this)
+}
+
+const originalToString = UniversalNumber.prototype.toString
+UniversalNumber.prototype.toString = function(base) {
+  this._ensureComputed()
+  return originalToString.call(this, base)
+}
+
+const originalGetFactorization = UniversalNumber.prototype.getFactorization
+UniversalNumber.prototype.getFactorization = function() {
+  this._ensureComputed()
+  return originalGetFactorization.call(this)
+}
+
+/**
+ * Apply operation fusion to a sequence of operations
+ * This optimizes computation by eliminating intermediate results
+ * 
+ * @param {Array<Function>} operations - Array of functions to compose
+ * @param {UniversalNumber} initialValue - Starting value
+ * @returns {UniversalNumber} Result of all operations combined
+ */
+UniversalNumber.fuse = function(operations, initialValue) {
+  if (!Array.isArray(operations) || operations.length === 0) {
+    throw new PrimeMathError('Operations array must not be empty')
+  }
+  
+  if (!(initialValue instanceof UniversalNumber)) {
+    initialValue = new UniversalNumber(initialValue)
+  }
+  
+  // Create a lazily evaluated universal number
+  return UniversalNumber.lazy(() => {
+    let result = initialValue
+    for (const operation of operations) {
+      result = operation(result)
+    }
+    return result
+  })
+}
+
+/**
+ * Create a compacted representation of this UniversalNumber
+ * Memory-optimized representation for very large numbers
+ * 
+ * @returns {Object} Compact serializable representation
+ */
+UniversalNumber.prototype.toCompact = function() {
+  this._ensureComputed()
+  
+  // Simple compression: only store non-zero exponents
+  const compactFactors = {}
+  
+  for (const [prime, exponent] of this._factorization.entries()) {
+    if (exponent > 0n) {
+      compactFactors[prime.toString()] = exponent.toString()
+    }
+  }
+  
+  return {
+    type: 'CompactUniversalNumber',
+    sign: this._isNegative ? -1 : 1,
+    factors: compactFactors
+  }
+}
+
+/**
+ * Create a UniversalNumber from a compact representation
+ * 
+ * @param {Object} compact - Compact representation created by toCompact()
+ * @returns {UniversalNumber} The reconstructed UniversalNumber
+ */
+UniversalNumber.fromCompact = function(compact) {
+  if (typeof compact !== 'object' || compact === null) {
+    throw new PrimeMathError('Invalid compact representation')
+  }
+  
+  if (compact.type !== 'CompactUniversalNumber') {
+    throw new PrimeMathError('Invalid compact representation type')
+  }
+  
+  const factorization = new Map()
+  
+  // Reconstruct the factorization map
+  for (const [primeStr, exponentStr] of Object.entries(compact.factors)) {
+    const prime = BigInt(primeStr)
+    const exponent = BigInt(exponentStr)
+    factorization.set(prime, exponent)
+  }
+  
+  return new UniversalNumber({
+    factorization,
+    isNegative: compact.sign < 0
+  })
+}
+
+/**
+ * Support for partial factorization of very large numbers
+ * 
+ * @typedef {Object} PartialFactorization
+ * @property {Map<BigInt, BigInt>} knownFactors - Factors that have been found
+ * @property {BigInt} remainingPart - Part that hasn't been factorized yet
+ */
+
+/**
+ * Create a UniversalNumber with partially known factorization
+ * Useful for very large numbers where complete factorization is impractical
+ * 
+ * @param {Object} params - Parameters for partial factorization
+ * @param {Array<{prime: BigInt|number|string, exponent: BigInt|number|string}>|Map<BigInt, BigInt>} params.knownFactors - Known prime factors
+ * @param {BigInt|number|string} params.remainingPart - The unfactorized part (must be > 1)
+ * @param {boolean} [params.isNegative=false] - Whether the number is negative
+ * @returns {UniversalNumber} A new UniversalNumber with partial factorization
+ */
+UniversalNumber.fromPartialFactorization = function(params) {
+  if (!params || typeof params !== 'object') {
+    throw new PrimeMathError('Invalid partial factorization parameters')
+  }
+  
+  const { knownFactors, remainingPart, isNegative = false } = params
+  
+  // Convert remainingPart to BigInt
+  const remaining = toBigInt(remainingPart)
+  
+  if (remaining <= 1n) {
+    throw new PrimeMathError('Remaining part must be greater than 1')
+  }
+  
+  // Process known factors
+  const factorsMap = knownFactors instanceof Map ?
+    new Map(knownFactors) :
+    factorArrayToMap(knownFactors.map(f => ({
+      prime: typeof f.prime === 'bigint' ? f.prime : toBigInt(f.prime),
+      exponent: typeof f.exponent === 'bigint' ? f.exponent : toBigInt(f.exponent)
+    })))
+  
+  // If the remaining part is prime, add it directly to the factorization
+  if (isPrime(remaining)) {
+    const currentExp = factorsMap.get(remaining) || 0n
+    factorsMap.set(remaining, currentExp + 1n)
+    
+    return new UniversalNumber({
+      factorization: factorsMap,
+      isNegative: !!isNegative
+    })
+  }
+  
+  // Otherwise, create a lazy UniversalNumber that will factor the remaining part when needed
+  return UniversalNumber.lazy(() => {
+    // Factorize the remaining part
+    const remainingFactors = factorizeOptimal(remaining)
+    
+    // Combine with known factors
+    const combined = new Map(factorsMap)
+    
+    for (const [prime, exponent] of remainingFactors.entries()) {
+      const currentExp = combined.get(prime) || 0n
+      combined.set(prime, currentExp + exponent)
+    }
+    
+    return new UniversalNumber({
+      factorization: combined,
+      isNegative: !!isNegative
+    })
+  })
+}
+
+/**
+ * Calculate modular square root if it exists
+ * Finds x such that x^2 ≡ this (mod n)
+ * 
+ * @param {UniversalNumber|BigInt|number|string} modulus - The modulus
+ * @returns {UniversalNumber|null} The modular square root if it exists, null otherwise
+ */
+UniversalNumber.prototype.modSqrt = function(modulus) {
+  const modulusNum = modulus instanceof UniversalNumber ?
+    modulus :
+    new UniversalNumber(modulus)
+  
+  const a = this.mod(modulusNum).toBigInt()
+  const m = modulusNum.toBigInt()
+  
+  // Handle special cases
+  if (a === 0n) return new UniversalNumber(0n)
+  if (m === 2n) return new UniversalNumber(a % 2n)
+  
+  // Check if a is a quadratic residue modulo m using Euler's criterion
+  if (!quadraticResidue(a, m)) {
+    return null // No square root exists
+  }
+  
+  // If m ≡ 3 (mod 4), we can use the formula r = a^((m+1)/4) mod m
+  if (m % 4n === 3n) {
+    const exp = (m + 1n) / 4n
+    return this.modPow(exp, modulusNum)
+  }
+  
+  // For m ≡ 1 (mod 4), use Tonelli-Shanks algorithm
+  // (This is a simplified implementation)
+  let q = m - 1n
+  let s = 0n
+  
+  // Factor out powers of 2 from q
+  while (q % 2n === 0n) {
+    q /= 2n
+    s++
+  }
+  
+  // Find a non-residue modulo m
+  let z = 2n
+  while (quadraticResidue(z, m)) {
+    z++
+  }
+  
+  // Initialize variables for the algorithm
+  let c = fastExp(z, q, m)
+  let r = fastExp(a, (q + 1n) / 2n, m)
+  let t = fastExp(a, q, m)
+  let m2 = m
+  
+  while (t !== 1n) {
+    // Find the lowest i, 0 < i < s, such that t^(2^i) ≡ 1 (mod m)
+    let i = 0n
+    let temp = t
+    while (temp !== 1n) {
+      temp = (temp * temp) % m2
+      i++
+      if (i >= s) return null // Should not happen if a is a QR
+    }
+    
+    // Update variables
+    const b = fastExp(c, fastExp(2n, s - i - 1n, m2 - 1n), m2)
+    r = (r * b) % m2
+    c = (b * b) % m2
+    t = (t * c) % m2
+    s = i
+  }
+  
+  return new UniversalNumber(r)
+  
+  // Helper function for modular exponentiation
+  function fastExp(base, exp, mod) {
+    let result = 1n
+    base = base % mod
+    
+    while (exp > 0n) {
+      if (exp % 2n === 1n) {
+        result = (result * base) % mod
+      }
+      base = (base * base) % mod
+      exp = exp / 2n
+    }
+    
+    return result
+  }
+  
+  // Helper function to check if a is a quadratic residue modulo p
+  function quadraticResidue(a, p) {
+    // Use Euler's criterion: a^((p-1)/2) ≡ 1 (mod p) if a is a QR
+    const power = (p - 1n) / 2n
+    return fastExp(a, power, p) === 1n
+  }
+}
+
+/**
+ * Perform fast multiplication when operands have many small prime factors
+ * Optimized for the Prime Framework's universal coordinates
+ * 
+ * @param {UniversalNumber} a - First number
+ * @param {UniversalNumber} b - Second number
+ * @returns {UniversalNumber} Product a × b
+ */
+UniversalNumber.fastMultiply = function(a, b) {
+  if (!(a instanceof UniversalNumber) || !(b instanceof UniversalNumber)) {
+    throw new PrimeMathError('Both arguments must be UniversalNumber instances')
+  }
+  
+  // Use lazy evaluation to defer the actual computation
+  return UniversalNumber.lazy(() => {
+    // Ensure both a and b have their factorizations computed
+    a._ensureComputed()
+    b._ensureComputed()
+    
+    // Create a new factorization map by merging prime exponents
+    const resultFactorization = new Map(a._factorization)
+    
+    // Calculate the sign of the result
+    const resultIsNegative = a._isNegative !== b._isNegative
+    
+    // Combine prime factors by adding exponents (core of factorization-based multiplication)
+    for (const [prime, exponent] of b._factorization.entries()) {
+      const currentExponent = resultFactorization.get(prime) || 0n
+      resultFactorization.set(prime, currentExponent + exponent)
+    }
+    
+    // Create a new UniversalNumber with the combined factorization
+    return new UniversalNumber({
+      factorization: resultFactorization,
+      isNegative: resultIsNegative
+    })
+  })
 }
 
 module.exports = UniversalNumber
