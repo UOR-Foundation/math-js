@@ -11,7 +11,7 @@
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
     "checkJs": true,
-    "types": ["jest"],
+    "types": ["jest", "node"],
     "lib": ["ESNext"]
   },
   "include": ["src/**/*", "tests/**/*"],

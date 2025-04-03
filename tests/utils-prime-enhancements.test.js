@@ -244,271 +244,271 @@ describe('Enhanced Prime Functionality in Utils Module', () => {
 describe('Prime Framework Utils Enhancements', () => {
   describe('getNthPrime', () => {
     test('should return correct small prime numbers', () => {
-      expect(getNthPrime(1n)).toBe(2n);
-      expect(getNthPrime(2n)).toBe(3n);
-      expect(getNthPrime(3n)).toBe(5n);
-      expect(getNthPrime(4n)).toBe(7n);
-      expect(getNthPrime(5n)).toBe(11n);
-      expect(getNthPrime(10n)).toBe(29n);
-    });
+      expect(getNthPrime(1n)).toBe(2n)
+      expect(getNthPrime(2n)).toBe(3n)
+      expect(getNthPrime(3n)).toBe(5n)
+      expect(getNthPrime(4n)).toBe(7n)
+      expect(getNthPrime(5n)).toBe(11n)
+      expect(getNthPrime(10n)).toBe(29n)
+    })
 
     test('should throw error for non-positive indices', () => {
-      expect(() => getNthPrime(0n)).toThrow();
-      expect(() => getNthPrime(-1n)).toThrow();
-    });
-  });
+      expect(() => getNthPrime(0n)).toThrow()
+      expect(() => getNthPrime(-1n)).toThrow()
+    })
+  })
 
   describe('isMersennePrime', () => {
     test('should identify Mersenne primes correctly', () => {
       // Known Mersenne primes: 2^p-1 where p in [2,3,5,7,13,17,19,31,...]
-      expect(isMersennePrime(3n)).toBe(true);  // 2^2-1
-      expect(isMersennePrime(7n)).toBe(true);  // 2^3-1
-      expect(isMersennePrime(31n)).toBe(true); // 2^5-1
-      expect(isMersennePrime(127n)).toBe(true); // 2^7-1
-    });
+      expect(isMersennePrime(3n)).toBe(true)  // 2^2-1
+      expect(isMersennePrime(7n)).toBe(true)  // 2^3-1
+      expect(isMersennePrime(31n)).toBe(true) // 2^5-1
+      expect(isMersennePrime(127n)).toBe(true) // 2^7-1
+    })
 
     test('should reject non-Mersenne primes', () => {
-      expect(isMersennePrime(2n)).toBe(false);  // prime but not Mersenne
-      expect(isMersennePrime(11n)).toBe(false); // prime but not Mersenne
-      expect(isMersennePrime(15n)).toBe(false); // not prime (3*5)
-      expect(isMersennePrime(63n)).toBe(false); // 2^6-1, but 6 is not prime
-    });
-  });
+      expect(isMersennePrime(2n)).toBe(false)  // prime but not Mersenne
+      expect(isMersennePrime(11n)).toBe(false) // prime but not Mersenne
+      expect(isMersennePrime(15n)).toBe(false) // not prime (3*5)
+      expect(isMersennePrime(63n)).toBe(false) // 2^6-1, but 6 is not prime
+    })
+  })
 
   describe('moebiusFunction', () => {
     test('should return correct Möbius function values', () => {
-      expect(moebiusFunction(1n)).toBe(1n);   // μ(1) = 1 by definition
-      expect(moebiusFunction(2n)).toBe(-1n);  // prime, odd number of prime factors
-      expect(moebiusFunction(3n)).toBe(-1n);  // prime, odd number of prime factors
-      expect(moebiusFunction(4n)).toBe(0n);   // 2^2, has squared factor
-      expect(moebiusFunction(6n)).toBe(1n);   // 2*3, even number of prime factors
-      expect(moebiusFunction(10n)).toBe(1n);  // 2*5, even number of prime factors
-      expect(moebiusFunction(15n)).toBe(1n);  // 3*5, even number of prime factors
-      expect(moebiusFunction(30n)).toBe(-1n); // 2*3*5, odd number of prime factors
-    });
+      expect(moebiusFunction(1n)).toBe(1n)   // μ(1) = 1 by definition
+      expect(moebiusFunction(2n)).toBe(-1n)  // prime, odd number of prime factors
+      expect(moebiusFunction(3n)).toBe(-1n)  // prime, odd number of prime factors
+      expect(moebiusFunction(4n)).toBe(0n)   // 2^2, has squared factor
+      expect(moebiusFunction(6n)).toBe(1n)   // 2*3, even number of prime factors
+      expect(moebiusFunction(10n)).toBe(1n)  // 2*5, even number of prime factors
+      expect(moebiusFunction(15n)).toBe(1n)  // 3*5, even number of prime factors
+      expect(moebiusFunction(30n)).toBe(-1n) // 2*3*5, odd number of prime factors
+    })
 
     test('should throw error for non-positive inputs', () => {
-      expect(() => moebiusFunction(0n)).toThrow();
-      expect(() => moebiusFunction(-1n)).toThrow();
-    });
-  });
+      expect(() => moebiusFunction(0n)).toThrow()
+      expect(() => moebiusFunction(-1n)).toThrow()
+    })
+  })
 
   describe('quadraticResidue', () => {
     test('should identify quadratic residues correctly', () => {
       // For p=7, the quadratic residues are 1,2,4 (1^2, 2^2, 4^2 mod 7)
-      expect(quadraticResidue(1n, 7n)).toBe(true);
-      expect(quadraticResidue(2n, 7n)).toBe(true);
-      expect(quadraticResidue(4n, 7n)).toBe(true);
+      expect(quadraticResidue(1n, 7n)).toBe(true)
+      expect(quadraticResidue(2n, 7n)).toBe(true)
+      expect(quadraticResidue(4n, 7n)).toBe(true)
       
       // For p=11, the quadratic residues are 1,3,4,5,9 (1^2, 10^2, 2^2, 9^2, 3^2 mod 11)
-      expect(quadraticResidue(1n, 11n)).toBe(true);
-      expect(quadraticResidue(3n, 11n)).toBe(true);
-      expect(quadraticResidue(4n, 11n)).toBe(true);
-      expect(quadraticResidue(5n, 11n)).toBe(true);
-      expect(quadraticResidue(9n, 11n)).toBe(true);
-    });
+      expect(quadraticResidue(1n, 11n)).toBe(true)
+      expect(quadraticResidue(3n, 11n)).toBe(true)
+      expect(quadraticResidue(4n, 11n)).toBe(true)
+      expect(quadraticResidue(5n, 11n)).toBe(true)
+      expect(quadraticResidue(9n, 11n)).toBe(true)
+    })
 
     test('should identify quadratic non-residues correctly', () => {
       // For p=7, the non-residues are 3,5,6
-      expect(quadraticResidue(3n, 7n)).toBe(false);
-      expect(quadraticResidue(5n, 7n)).toBe(false);
-      expect(quadraticResidue(6n, 7n)).toBe(false);
+      expect(quadraticResidue(3n, 7n)).toBe(false)
+      expect(quadraticResidue(5n, 7n)).toBe(false)
+      expect(quadraticResidue(6n, 7n)).toBe(false)
       
       // For p=11, the non-residues are 2,6,7,8,10
-      expect(quadraticResidue(2n, 11n)).toBe(false);
-      expect(quadraticResidue(6n, 11n)).toBe(false);
-      expect(quadraticResidue(7n, 11n)).toBe(false);
-      expect(quadraticResidue(8n, 11n)).toBe(false);
-      expect(quadraticResidue(10n, 11n)).toBe(false);
-    });
+      expect(quadraticResidue(2n, 11n)).toBe(false)
+      expect(quadraticResidue(6n, 11n)).toBe(false)
+      expect(quadraticResidue(7n, 11n)).toBe(false)
+      expect(quadraticResidue(8n, 11n)).toBe(false)
+      expect(quadraticResidue(10n, 11n)).toBe(false)
+    })
 
     test('should throw error for invalid inputs', () => {
-      expect(() => quadraticResidue(1n, 0n)).toThrow();
-      expect(() => quadraticResidue(1n, -7n)).toThrow();
-      expect(() => quadraticResidue(1n, 4n)).toThrow(); // 4 is not prime
-    });
-  });
-});
+      expect(() => quadraticResidue(1n, 0n)).toThrow()
+      expect(() => quadraticResidue(1n, -7n)).toThrow()
+      expect(() => quadraticResidue(1n, 4n)).toThrow() // 4 is not prime
+    })
+  })
+})
 
 describe('PrimeMath Prime Framework Enhancements', () => {
   describe('coherenceInnerProduct and coherenceNorm', () => {
     test('should calculate coherence inner product correctly', () => {
       // Coherence inner product for two numbers is based on their prime factorizations
       // For simple numbers with single prime factors
-      expect(PrimeMath.coherenceInnerProduct(2n, 2n)).toBe(2n); // 2*1*1
-      expect(PrimeMath.coherenceInnerProduct(3n, 3n)).toBe(3n); // 3*1*1
+      expect(PrimeMath.coherenceInnerProduct(2n, 2n)).toBe(2n) // 2*1*1
+      expect(PrimeMath.coherenceInnerProduct(3n, 3n)).toBe(3n) // 3*1*1
       
       // For numbers with multiple prime factors
       // 4 = 2^2, 6 = 2*3
       // Inner product should be 2*2*1 = 4
-      expect(PrimeMath.coherenceInnerProduct(4n, 6n)).toBe(4n);
+      expect(PrimeMath.coherenceInnerProduct(4n, 6n)).toBe(4n)
       
       // 12 = 2^2 * 3, 18 = 2 * 3^2
       // Inner product should be 2*2*1 + 3*1*2 = 4 + 6 = 10
-      expect(PrimeMath.coherenceInnerProduct(12n, 18n)).toBe(10n);
-    });
+      expect(PrimeMath.coherenceInnerProduct(12n, 18n)).toBe(10n)
+    })
 
     test('should calculate coherence norm correctly', () => {
       // Coherence norm is essentially the inner product of a number with itself
       
       // For prime numbers p, norm is p*1^2 = p
-      expect(PrimeMath.coherenceNorm(2n)).toBe(2n);
-      expect(PrimeMath.coherenceNorm(3n)).toBe(3n);
-      expect(PrimeMath.coherenceNorm(5n)).toBe(5n);
+      expect(PrimeMath.coherenceNorm(2n)).toBe(2n)
+      expect(PrimeMath.coherenceNorm(3n)).toBe(3n)
+      expect(PrimeMath.coherenceNorm(5n)).toBe(5n)
       
       // For powers of primes p^n, norm is p*n^2
-      expect(PrimeMath.coherenceNorm(4n)).toBe(8n);   // 2*2^2 = 8
-      expect(PrimeMath.coherenceNorm(8n)).toBe(18n);  // 2*3^2 = 18
-      expect(PrimeMath.coherenceNorm(9n)).toBe(12n);  // 3*2^2 = 12
+      expect(PrimeMath.coherenceNorm(4n)).toBe(8n)   // 2*2^2 = 8
+      expect(PrimeMath.coherenceNorm(8n)).toBe(18n)  // 2*3^2 = 18
+      expect(PrimeMath.coherenceNorm(9n)).toBe(12n)  // 3*2^2 = 12
       
       // For products of different primes
       // 6 = 2*3, norm should be 2*1^2 + 3*1^2 = 5
-      expect(PrimeMath.coherenceNorm(6n)).toBe(5n);
+      expect(PrimeMath.coherenceNorm(6n)).toBe(5n)
       
       // 30 = 2*3*5, norm should be 2*1^2 + 3*1^2 + 5*1^2 = 10
-      expect(PrimeMath.coherenceNorm(30n)).toBe(10n);
-    });
-  });
+      expect(PrimeMath.coherenceNorm(30n)).toBe(10n)
+    })
+  })
 
   describe('coherenceDistance', () => {
     test('should calculate distance between numbers correctly', () => {
       // Distance is defined as the norm of the difference
       // For small numbers
-      expect(PrimeMath.coherenceDistance(5n, 3n)).toBe(2n); // |5-3| = 2, norm of 2 is 2
-      expect(PrimeMath.coherenceDistance(10n, 2n)).toBe(18n); // |10-2| = 8, norm of 8 is 2*3^2 = 18
+      expect(PrimeMath.coherenceDistance(5n, 3n)).toBe(2n) // |5-3| = 2, norm of 2 is 2
+      expect(PrimeMath.coherenceDistance(10n, 2n)).toBe(18n) // |10-2| = 8, norm of 8 is 2*3^2 = 18
       
       // Symmetric property
-      expect(PrimeMath.coherenceDistance(7n, 2n)).toBe(PrimeMath.coherenceDistance(2n, 7n));
-    });
-  });
+      expect(PrimeMath.coherenceDistance(7n, 2n)).toBe(PrimeMath.coherenceDistance(2n, 7n))
+    })
+  })
 
   describe('nthPrime', () => {
     test('should return the correct nth prime number', () => {
       // For UniversalNumber return type, we need to check the BigInt value
-      const result1 = PrimeMath.nthPrime(1);
-      expect(result1 instanceof Object && result1.toBigInt ? result1.toBigInt() : result1).toBe(2n);
+      const result1 = PrimeMath.nthPrime(1)
+      expect(result1 instanceof Object && result1.toBigInt ? result1.toBigInt() : result1).toBe(2n)
       
-      const result5 = PrimeMath.nthPrime(5);
-      expect(result5 instanceof Object && result5.toBigInt ? result5.toBigInt() : result5).toBe(11n);
+      const result5 = PrimeMath.nthPrime(5)
+      expect(result5 instanceof Object && result5.toBigInt ? result5.toBigInt() : result5).toBe(11n)
       
-      const result10 = PrimeMath.nthPrime(10);
-      expect(result10 instanceof Object && result10.toBigInt ? result10.toBigInt() : result10).toBe(29n);
+      const result10 = PrimeMath.nthPrime(10)
+      expect(result10 instanceof Object && result10.toBigInt ? result10.toBigInt() : result10).toBe(29n)
       
-      const result25 = PrimeMath.nthPrime(25);
-      expect(result25 instanceof Object && result25.toBigInt ? result25.toBigInt() : result25).toBe(97n);
-    });
+      const result25 = PrimeMath.nthPrime(25)
+      expect(result25 instanceof Object && result25.toBigInt ? result25.toBigInt() : result25).toBe(97n)
+    })
 
     test('should throw error for invalid inputs', () => {
-      expect(() => PrimeMath.nthPrime(0)).toThrow();
-      expect(() => PrimeMath.nthPrime(-1)).toThrow();
-    });
-  });
+      expect(() => PrimeMath.nthPrime(0)).toThrow()
+      expect(() => PrimeMath.nthPrime(-1)).toThrow()
+    })
+  })
 
   describe('legendreSymbol', () => {
     test('should compute Legendre symbol correctly', () => {
       // Known values for Legendre symbol
-      expect(PrimeMath.legendreSymbol(1, 7)).toBe(1);   // 1 is always a quadratic residue
-      expect(PrimeMath.legendreSymbol(2, 7)).toBe(1);   // 2 is a quadratic residue mod 7
-      expect(PrimeMath.legendreSymbol(3, 7)).toBe(-1);  // 3 is not a quadratic residue mod 7
-      expect(PrimeMath.legendreSymbol(0, 7)).toBe(0);   // 0 is a special case
+      expect(PrimeMath.legendreSymbol(1, 7)).toBe(1)   // 1 is always a quadratic residue
+      expect(PrimeMath.legendreSymbol(2, 7)).toBe(1)   // 2 is a quadratic residue mod 7
+      expect(PrimeMath.legendreSymbol(3, 7)).toBe(-1)  // 3 is not a quadratic residue mod 7
+      expect(PrimeMath.legendreSymbol(0, 7)).toBe(0)   // 0 is a special case
       
       // More cases
-      expect(PrimeMath.legendreSymbol(2, 11)).toBe(-1); // 2 is not a quadratic residue mod 11
-      expect(PrimeMath.legendreSymbol(3, 11)).toBe(1);  // 3 is a quadratic residue mod 11
-    });
+      expect(PrimeMath.legendreSymbol(2, 11)).toBe(-1) // 2 is not a quadratic residue mod 11
+      expect(PrimeMath.legendreSymbol(3, 11)).toBe(1)  // 3 is a quadratic residue mod 11
+    })
 
     test('should throw error for invalid inputs', () => {
-      expect(() => PrimeMath.legendreSymbol(1, 4)).toThrow(); // 4 is not prime
-      expect(() => PrimeMath.legendreSymbol(1, 0)).toThrow();
-      expect(() => PrimeMath.legendreSymbol(1, -7)).toThrow();
-    });
-  });
+      expect(() => PrimeMath.legendreSymbol(1, 4)).toThrow() // 4 is not prime
+      expect(() => PrimeMath.legendreSymbol(1, 0)).toThrow()
+      expect(() => PrimeMath.legendreSymbol(1, -7)).toThrow()
+    })
+  })
 
   describe('jacobiSymbol', () => {
     test('should compute Jacobi symbol correctly for prime moduli', () => {
       // For prime moduli, Jacobi symbol = Legendre symbol
-      expect(PrimeMath.jacobiSymbol(1, 7)).toBe(1);
-      expect(PrimeMath.jacobiSymbol(2, 7)).toBe(1);
-      expect(PrimeMath.jacobiSymbol(3, 7)).toBe(-1);
-      expect(PrimeMath.jacobiSymbol(0, 7)).toBe(0);
-    });
+      expect(PrimeMath.jacobiSymbol(1, 7)).toBe(1)
+      expect(PrimeMath.jacobiSymbol(2, 7)).toBe(1)
+      expect(PrimeMath.jacobiSymbol(3, 7)).toBe(-1)
+      expect(PrimeMath.jacobiSymbol(0, 7)).toBe(0)
+    })
 
     test('should compute Jacobi symbol correctly for composite moduli', () => {
       // Known values for composite moduli
-      expect(PrimeMath.jacobiSymbol(1, 15)).toBe(1);   // 1 is always 1
-      expect(PrimeMath.jacobiSymbol(2, 15)).toBe(1);   // (2/15) = (2/3)*(2/5) = -1*-1 = 1
-      expect(PrimeMath.jacobiSymbol(7, 15)).toBe(-1);  // (7/15) = (7/3)*(7/5) = 1*-1 = -1
-    });
+      expect(PrimeMath.jacobiSymbol(1, 15)).toBe(1)   // 1 is always 1
+      expect(PrimeMath.jacobiSymbol(2, 15)).toBe(1)   // (2/15) = (2/3)*(2/5) = -1*-1 = 1
+      expect(PrimeMath.jacobiSymbol(7, 15)).toBe(-1)  // (7/15) = (7/3)*(7/5) = 1*-1 = -1
+    })
 
     test('should throw error for invalid inputs', () => {
-      expect(() => PrimeMath.jacobiSymbol(1, 0)).toThrow();
-      expect(() => PrimeMath.jacobiSymbol(1, -15)).toThrow();
-      expect(() => PrimeMath.jacobiSymbol(1, 2)).toThrow(); // 2 is not odd
-    });
-  });
+      expect(() => PrimeMath.jacobiSymbol(1, 0)).toThrow()
+      expect(() => PrimeMath.jacobiSymbol(1, -15)).toThrow()
+      expect(() => PrimeMath.jacobiSymbol(1, 2)).toThrow() // 2 is not odd
+    })
+  })
 
   describe('discreteLog', () => {
     test('should compute discrete logarithm correctly for small values', () => {
       // Find x such that 2^x ≡ 3 (mod 5)
       // 2^0 = 1, 2^1 = 2, 2^2 = 4, 2^3 = 3 (mod 5)
-      expect(PrimeMath.discreteLog(2, 3, 5)).toBe(3n);
+      expect(PrimeMath.discreteLog(2, 3, 5)).toBe(3n)
       
       // Find x such that 2^x ≡ 5 (mod 11)
       // 2^0 = 1, 2^1 = 2, 2^2 = 4, 2^3 = 8, 2^4 = 5 (mod 11)
-      expect(PrimeMath.discreteLog(2, 5, 11)).toBe(4n);
+      expect(PrimeMath.discreteLog(2, 5, 11)).toBe(4n)
       
       // Find x such that 3^x ≡ 4 (mod 7)
       // 3^0 = 1, 3^1 = 3, 3^2 = 2, 3^3 = 6, 3^4 = 4 (mod 7)
-      expect(PrimeMath.discreteLog(3, 4, 7)).toBe(4n);
-    });
+      expect(PrimeMath.discreteLog(3, 4, 7)).toBe(4n)
+    })
 
     test('should return null when no solution exists', () => {
       // There is no x such that 2^x ≡ 0 (mod 7)
-      expect(PrimeMath.discreteLog(2, 0, 7)).toBeNull();
-    });
+      expect(PrimeMath.discreteLog(2, 0, 7)).toBeNull()
+    })
 
     test('should handle special cases correctly', () => {
       // g^0 = 1 for any g
-      expect(PrimeMath.discreteLog(2, 1, 11)).toBe(0n);
+      expect(PrimeMath.discreteLog(2, 1, 11)).toBe(0n)
       
       // g^1 = g for any g
-      expect(PrimeMath.discreteLog(3, 3, 7)).toBe(1n);
-    });
+      expect(PrimeMath.discreteLog(3, 3, 7)).toBe(1n)
+    })
 
     test('should throw error for invalid inputs', () => {
-      expect(() => PrimeMath.discreteLog(0, 1, 7)).toThrow();
-      expect(() => PrimeMath.discreteLog(2, 3, 1)).toThrow();
-    });
-  });
+      expect(() => PrimeMath.discreteLog(0, 1, 7)).toThrow()
+      expect(() => PrimeMath.discreteLog(2, 3, 1)).toThrow()
+    })
+  })
 
   describe('isMersennePrime', () => {
     test('should identify Mersenne primes correctly', () => {
-      expect(PrimeMath.isMersennePrime(3)).toBe(true);   // 2^2-1
-      expect(PrimeMath.isMersennePrime(7)).toBe(true);   // 2^3-1
-      expect(PrimeMath.isMersennePrime(31)).toBe(true);  // 2^5-1
-      expect(PrimeMath.isMersennePrime(127)).toBe(true); // 2^7-1
-    });
+      expect(PrimeMath.isMersennePrime(3)).toBe(true)   // 2^2-1
+      expect(PrimeMath.isMersennePrime(7)).toBe(true)   // 2^3-1
+      expect(PrimeMath.isMersennePrime(31)).toBe(true)  // 2^5-1
+      expect(PrimeMath.isMersennePrime(127)).toBe(true) // 2^7-1
+    })
 
     test('should reject non-Mersenne primes', () => {
-      expect(PrimeMath.isMersennePrime(2)).toBe(false);  // prime but not Mersenne
-      expect(PrimeMath.isMersennePrime(11)).toBe(false); // prime but not Mersenne
-      expect(PrimeMath.isMersennePrime(15)).toBe(false); // not prime (3*5)
-      expect(PrimeMath.isMersennePrime(63)).toBe(false); // 2^6-1, but 6 is not prime
-    });
-  });
+      expect(PrimeMath.isMersennePrime(2)).toBe(false)  // prime but not Mersenne
+      expect(PrimeMath.isMersennePrime(11)).toBe(false) // prime but not Mersenne
+      expect(PrimeMath.isMersennePrime(15)).toBe(false) // not prime (3*5)
+      expect(PrimeMath.isMersennePrime(63)).toBe(false) // 2^6-1, but 6 is not prime
+    })
+  })
 
   describe('moebius', () => {
     test('should calculate the Möbius function correctly', () => {
-      expect(PrimeMath.moebius(1)).toBe(1n);   // μ(1) = 1 by definition
-      expect(PrimeMath.moebius(2)).toBe(-1n);  // prime, odd number of factors
-      expect(PrimeMath.moebius(6)).toBe(1n);   // 2*3, even number of distinct primes
-      expect(PrimeMath.moebius(8)).toBe(0n);   // 2^3, has a squared factor
-      expect(PrimeMath.moebius(30)).toBe(-1n); // 2*3*5, odd number of distinct primes
-    });
+      expect(PrimeMath.moebius(1)).toBe(1n)   // μ(1) = 1 by definition
+      expect(PrimeMath.moebius(2)).toBe(-1n)  // prime, odd number of factors
+      expect(PrimeMath.moebius(6)).toBe(1n)   // 2*3, even number of distinct primes
+      expect(PrimeMath.moebius(8)).toBe(0n)   // 2^3, has a squared factor
+      expect(PrimeMath.moebius(30)).toBe(-1n) // 2*3*5, odd number of distinct primes
+    })
 
     test('should throw error for invalid inputs', () => {
-      expect(() => PrimeMath.moebius(0)).toThrow();
-      expect(() => PrimeMath.moebius(-1)).toThrow();
-    });
-  });
-});
+      expect(() => PrimeMath.moebius(0)).toThrow()
+      expect(() => PrimeMath.moebius(-1)).toThrow()
+    })
+  })
+})

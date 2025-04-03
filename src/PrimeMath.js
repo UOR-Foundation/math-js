@@ -85,19 +85,19 @@ function extractFactorization(value) {
  * @returns {BigInt} The coherence inner product value
  */
 function computeCoherenceInnerProduct(factorizationA, factorizationB) {
-  let innerProduct = 0n;
+  let innerProduct = 0n
   
   // Get all primes from both factorizations
-  const allPrimes = new Set([...factorizationA.keys(), ...factorizationB.keys()]);
+  const allPrimes = new Set([...factorizationA.keys(), ...factorizationB.keys()])
   
   // Sum the product of corresponding exponents for each prime
   for (const prime of allPrimes) {
-    const exponentA = factorizationA.get(prime) || 0n;
-    const exponentB = factorizationB.get(prime) || 0n;
-    innerProduct += exponentA * exponentB * prime;
+    const exponentA = factorizationA.get(prime) || 0n
+    const exponentB = factorizationB.get(prime) || 0n
+    innerProduct += exponentA * exponentB * prime
   }
   
-  return innerProduct;
+  return innerProduct
 }
 
 /**
@@ -109,7 +109,7 @@ function computeCoherenceInnerProduct(factorizationA, factorizationB) {
  * @returns {BigInt} The coherence norm value
  */
 function computeCoherenceNorm(factorization) {
-  return computeCoherenceInnerProduct(factorization, factorization);
+  return computeCoherenceInnerProduct(factorization, factorization)
 }
 
 /**
@@ -1286,95 +1286,95 @@ const PrimeMath = {
   discreteLog(g, h, p, options = {}) {
     // Handle UniversalNumber if available
     if (isUniversalNumber(g) || isUniversalNumber(h) || isUniversalNumber(p)) {
-      const gValue = isUniversalNumber(g) ? g.toBigInt() : toBigInt(g);
-      const hValue = isUniversalNumber(h) ? h.toBigInt() : toBigInt(h);
-      const pValue = isUniversalNumber(p) ? p.toBigInt() : toBigInt(p);
+      const gValue = isUniversalNumber(g) ? g.toBigInt() : toBigInt(g)
+      const hValue = isUniversalNumber(h) ? h.toBigInt() : toBigInt(h)
+      const pValue = isUniversalNumber(p) ? p.toBigInt() : toBigInt(p)
       
-      const result = this.discreteLog(gValue, hValue, pValue, options);
+      const result = this.discreteLog(gValue, hValue, pValue, options)
       if (result === null) {
-        return null;
+        return null
       }
       
       if (UniversalNumber) {
         // @ts-ignore - UniversalNumber constructor is properly implemented
-        return new UniversalNumber(result);
+        return new UniversalNumber(result)
       }
-      return result;
+      return result
     }
     
-    const bigG = toBigInt(g);
-    const bigH = toBigInt(h);
-    const bigP = toBigInt(p);
-    const { verify = true } = options;
+    const bigG = toBigInt(g)
+    const bigH = toBigInt(h)
+    const bigP = toBigInt(p)
+    const { verify = true } = options
     
     if (bigP <= 1n) {
-      throw new PrimeMathError('Modulus must be greater than 1');
+      throw new PrimeMathError('Modulus must be greater than 1')
     }
     
     if (bigG === 0n) {
-      throw new PrimeMathError('Base cannot be zero');
+      throw new PrimeMathError('Base cannot be zero')
     }
     
     // Special cases
     if (bigH === 1n) {
-      return 0n; // g^0 = 1
+      return 0n // g^0 = 1
     }
     
     if (bigG === bigH) {
-      return 1n; // g^1 = g
+      return 1n // g^1 = g
     }
     
     // Normalize g and h to be in the range [0, p-1]
-    const normalizedG = ((bigG % bigP) + bigP) % bigP;
-    const normalizedH = ((bigH % bigP) + bigP) % bigP;
+    const normalizedG = ((bigG % bigP) + bigP) % bigP
+    const normalizedH = ((bigH % bigP) + bigP) % bigP
     
     if (normalizedG === 0n || normalizedH === 0n) {
-      return null; // No solution if either g or h is congruent to 0 mod p
+      return null // No solution if either g or h is congruent to 0 mod p
     }
     
     // Baby-step giant-step algorithm
-    const m = BigInt(Math.ceil(Math.sqrt(Number(bigP))));
+    const m = BigInt(Math.ceil(Math.sqrt(Number(bigP))))
     
     // Precompute giant steps
-    const giantSteps = new Map();
-    let value = 1n;
+    const giantSteps = new Map()
+    let value = 1n
     
     for (let j = 0n; j < m; j++) {
-      giantSteps.set(value.toString(), j);
-      value = (value * normalizedG) % bigP;
+      giantSteps.set(value.toString(), j)
+      value = (value * normalizedG) % bigP
     }
     
     // Precompute g^(-m) mod p
-    const gInverse = this.modInverse(normalizedG, bigP);
+    const gInverse = this.modInverse(normalizedG, bigP)
     if (gInverse === null) {
-      throw new PrimeMathError(`The base ${normalizedG} has no inverse modulo ${bigP}`);
+      throw new PrimeMathError(`The base ${normalizedG} has no inverse modulo ${bigP}`)
     }
     
-    const gToNegM = this.modPow(gInverse, m, bigP);
+    const gToNegM = this.modPow(gInverse, m, bigP)
     
     // Baby steps
-    value = normalizedH;
+    value = normalizedH
     for (let i = 0n; i < m; i++) {
-      const lookup = giantSteps.get(value.toString());
+      const lookup = giantSteps.get(value.toString())
       if (lookup !== undefined) {
-        const result = (i * m + lookup) % bigP;
+        const result = (i * m + lookup) % bigP
         
         // Verify the result if requested
         if (verify) {
-          const check = this.modPow(normalizedG, result, bigP);
+          const check = this.modPow(normalizedG, result, bigP)
           if (check !== normalizedH) {
-            throw new PrimeMathError('Verification failed in discrete logarithm calculation');
+            throw new PrimeMathError('Verification failed in discrete logarithm calculation')
           }
         }
         
-        return result;
+        return result
       }
       
       // Update value for next iteration: value = h * g^(-m*i) mod p
-      value = (value * gToNegM) % bigP;
+      value = (value * gToNegM) % bigP
     }
     
-    return null; // No solution found
+    return null // No solution found
   },
 
   /**
@@ -1388,27 +1388,27 @@ const PrimeMath = {
   coherenceInnerProduct(a, b) {
     // Handle UniversalNumber if available
     if (isUniversalNumber(a) || isUniversalNumber(b)) {
-      const aFactorization = isUniversalNumber(a) ? a.getFactorization() : factorizeOptimal(toBigInt(a));
-      const bFactorization = isUniversalNumber(b) ? b.getFactorization() : factorizeOptimal(toBigInt(b));
+      const aFactorization = isUniversalNumber(a) ? a.getFactorization() : factorizeOptimal(toBigInt(a))
+      const bFactorization = isUniversalNumber(b) ? b.getFactorization() : factorizeOptimal(toBigInt(b))
       
-      const result = computeCoherenceInnerProduct(aFactorization, bFactorization);
+      const result = computeCoherenceInnerProduct(aFactorization, bFactorization)
       
       if (UniversalNumber) {
         // @ts-ignore - UniversalNumber constructor is properly implemented
-        return new UniversalNumber(result);
+        return new UniversalNumber(result)
       }
-      return result;
+      return result
     }
     
-    const bigA = toBigInt(a);
-    const bigB = toBigInt(b);
+    const bigA = toBigInt(a)
+    const bigB = toBigInt(b)
     
     // Factorize the numbers
-    const factorizationA = factorizeOptimal(bigA);
-    const factorizationB = factorizeOptimal(bigB);
+    const factorizationA = factorizeOptimal(bigA)
+    const factorizationB = factorizeOptimal(bigB)
     
     // Compute the inner product
-    return computeCoherenceInnerProduct(factorizationA, factorizationB);
+    return computeCoherenceInnerProduct(factorizationA, factorizationB)
   },
 
   /**
@@ -1421,23 +1421,23 @@ const PrimeMath = {
   coherenceNorm(n) {
     // Handle UniversalNumber if available
     if (isUniversalNumber(n)) {
-      const factorization = n.getFactorization();
-      const result = computeCoherenceNorm(factorization);
+      const factorization = n.getFactorization()
+      const result = computeCoherenceNorm(factorization)
       
       if (UniversalNumber) {
         // @ts-ignore - UniversalNumber constructor is properly implemented
-        return new UniversalNumber(result);
+        return new UniversalNumber(result)
       }
-      return result;
+      return result
     }
     
-    const bigN = toBigInt(n);
+    const bigN = toBigInt(n)
     
     // Factorize the number
-    const factorization = factorizeOptimal(bigN);
+    const factorization = factorizeOptimal(bigN)
     
     // Compute the norm
-    return computeCoherenceNorm(factorization);
+    return computeCoherenceNorm(factorization)
   },
   
   /**
@@ -1453,14 +1453,14 @@ const PrimeMath = {
     // d(a,b) = ||a - b||_c
     
     // Get the numbers as BigInts
-    const bigA = isUniversalNumber(a) ? a.toBigInt() : toBigInt(a);
-    const bigB = isUniversalNumber(b) ? b.toBigInt() : toBigInt(b);
+    const bigA = isUniversalNumber(a) ? a.toBigInt() : toBigInt(a)
+    const bigB = isUniversalNumber(b) ? b.toBigInt() : toBigInt(b)
     
     // Compute the difference
-    const diff = bigA > bigB ? bigA - bigB : bigB - bigA;
+    const diff = bigA > bigB ? bigA - bigB : bigB - bigA
     
     // Compute the norm of the difference
-    return this.coherenceNorm(diff);
+    return this.coherenceNorm(diff)
   },
   
   /**
@@ -1474,19 +1474,19 @@ const PrimeMath = {
     // In the current implementation, numbers are already in canonical form
     // since we use the prime factorization as the standard representation
     if (isUniversalNumber(n)) {
-      return n; // UniversalNumber instances are already canonical
+      return n // UniversalNumber instances are already canonical
     }
     
-    const bigN = toBigInt(n);
+    const bigN = toBigInt(n)
     
     // If we have UniversalNumber available, create an instance to ensure canonical form
     if (UniversalNumber) {
       // @ts-ignore - UniversalNumber constructor is properly implemented
-      return new UniversalNumber(bigN);
+      return new UniversalNumber(bigN)
     }
     
     // Otherwise, the BigInt representation is already optimal in our context
-    return bigN;
+    return bigN
   },
 
   /**
@@ -1499,10 +1499,10 @@ const PrimeMath = {
    */
   areCoherent(a, b) {
     // In our framework, numbers are coherent if they have the same value
-    const bigA = isUniversalNumber(a) ? a.toBigInt() : toBigInt(a);
-    const bigB = isUniversalNumber(b) ? b.toBigInt() : toBigInt(b);
+    const bigA = isUniversalNumber(a) ? a.toBigInt() : toBigInt(a)
+    const bigB = isUniversalNumber(b) ? b.toBigInt() : toBigInt(b)
     
-    return bigA === bigB;
+    return bigA === bigB
   },
 
   /**
@@ -1516,7 +1516,7 @@ const PrimeMath = {
   fftMultiply(a, b) {
     // Currently, this is a placeholder for future FFT implementation
     // For now, we'll use the standard multiplication and indicate the potential for future optimization
-    return this.multiply(a, b);
+    return this.multiply(a, b)
     
     // TODO: Implement actual FFT-based multiplication for extremely large numbers
     // This would involve:
