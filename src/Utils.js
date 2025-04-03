@@ -316,7 +316,10 @@ function _millerRabinTest(n, k = 40) {
   // Use deterministic bases for n < 2^64
   const isPotentiallyDeterministic = n < 2n ** 64n
   
-  // Witness loop
+  /**
+   * @param {BigInt} a - The witness to test
+   * @returns {boolean} True if the witness passes, false otherwise
+   */
   const witnessLoop = (a) => {
     // Compute a^d % n
     let x = fastExp(a, d) % n
@@ -369,7 +372,18 @@ function _millerRabinTest(n, k = 40) {
  * @param {boolean} options.updateCache - Whether to update the cache with result (default: true)
  * @returns {boolean} True if n is prime, false otherwise
  */
-function isPrime(n, options = {}) {
+/**
+ * @typedef {Object} PrimeTestOptions
+ * @property {boolean} useCache - Whether to use the prime cache
+ * @property {boolean} updateCache - Whether to update the cache with result
+ */
+
+/**
+ * @param {BigInt|number|string} n - The number to check for primality
+ * @param {PrimeTestOptions} [options] - Options for primality testing
+ * @returns {boolean} True if n is prime, false otherwise
+ */
+function isPrime(n, options = { useCache: true, updateCache: true }) {
   // Default options
   const useCache = options.useCache !== false
   const updateCache = options.updateCache !== false
@@ -887,6 +901,187 @@ const primeCache = {
   }
 }
 
+/**
+ * Get the nth prime number
+ * Uses optimized caching and generation for efficiency
+ * 
+ * @param {BigInt|number|string} n - The 1-based index of the prime number to retrieve
+ * @returns {BigInt} The nth prime number
+ * @throws {PrimeMathError} If n is not a positive integer
+ */
+function getNthPrime(n) {
+  const index = toBigInt(n)
+  
+  if (index <= 0n) {
+    throw new PrimeMathError('Index must be a positive integer')
+  }
+  
+  // For small values, use the known primes cache
+  if (index <= BigInt(_primeCache.knownPrimes.length)) {
+    return _primeCache.knownPrimes[Number(index - 1n)]
+  }
+  
+  // Generate primes up to the required index
+  let count = BigInt(_primeCache.knownPrimes.length)
+  let candidate = _primeCache.knownPrimes[_primeCache.knownPrimes.length - 1]
+  
+  while (count < index) {
+    candidate = nextPrime(candidate)
+    count += 1n
+  }
+  
+  return candidate
+}
+
+/**
+ * Check if a number is a Mersenne prime (a prime of the form 2^n - 1)
+ * Mersenne primes have the form 2^p - 1 where p is also prime
+ * 
+ * @param {BigInt|number|string} n - The number to check
+ * @returns {boolean} True if n is a Mersenne prime, false otherwise
+ */
+function isMersennePrime(n) {
+  const num = toBigInt(n)
+  
+  // Quick test: Mersenne primes are of the form 2^p - 1
+  // First check if n is prime
+  if (!isPrime(num)) {
+    return false
+  }
+  
+  // Check if n is of the form 2^p - 1
+  // If n is 2^p - 1, then n + 1 is a power of 2
+  const nPlusOne = num + 1n
+  
+  // Check if n + 1 is a power of 2 by checking if it has exactly one bit set
+  if ((nPlusOne & (nPlusOne - 1n)) !== 0n) {
+    return false
+  }
+  
+  // Get the exponent p by computing log2(n + 1)
+  let exponent = 0n
+  let temp = nPlusOne
+  while (temp > 1n) {
+    temp = temp >> 1n
+    exponent++
+  }
+  
+  // For a true Mersenne prime, p must also be prime
+  return isPrime(exponent)
+}
+
+/**
+ * Calculate the Möbius function μ(n) value for a number
+ * The Möbius function is defined as:
+ * μ(n) = 
+ *   1  if n is square-free with an even number of prime factors
+ *  -1  if n is square-free with an odd number of prime factors
+ *   0  if n has a squared prime factor
+ * 
+ * @param {BigInt|number|string} n - The number to compute the Möbius function for
+ * @returns {BigInt} The Möbius function value
+ * @throws {PrimeMathError} If n is not a positive integer
+ */
+function moebiusFunction(n) {
+  const num = toBigInt(n)
+  
+  if (num <= 0n) {
+    throw new PrimeMathError('Möbius function is only defined for positive integers')
+  }
+  
+  if (num === 1n) {
+    return 1n // μ(1) = 1 by definition
+  }
+  
+  // Trial division approach to factorize and check for repeated factors
+  let remainingNum = num
+  let sign = 1n // Track the parity of the number of prime factors
+  let lastFactor = 0n
+  
+  for (let i = 0; i < _primeCache.knownPrimes.length && _primeCache.knownPrimes[i] * _primeCache.knownPrimes[i] <= remainingNum; i++) {
+    const prime = _primeCache.knownPrimes[i]
+    
+    if (remainingNum % prime === 0n) {
+      // Found a prime factor
+      remainingNum /= prime
+      
+      // Check if this prime appears more than once
+      if (remainingNum % prime === 0n) {
+        return 0n // Not square-free
+      }
+      
+      sign = -sign // Flip the sign for each prime factor
+      lastFactor = prime
+    }
+  }
+  
+  // If there's a remaining factor and it's not the last found factor, it's a prime
+  if (remainingNum > 1n) {
+    if (remainingNum !== lastFactor) {
+      sign = -sign // Flip the sign for this additional prime factor
+    }
+  }
+  
+  return sign
+}
+
+/**
+ * Check if a is a quadratic residue modulo p
+ * A number a is a quadratic residue modulo p if there exists an x such that x^2 ≡ a (mod p)
+ * 
+ * @param {BigInt|number|string} a - The number to check
+ * @param {BigInt|number|string} p - The prime modulus
+ * @returns {boolean} True if a is a quadratic residue modulo p, false otherwise
+ * @throws {PrimeMathError} If p is not likely a prime
+ */
+function quadraticResidue(a, p) {
+  const bigA = toBigInt(a)
+  const bigP = toBigInt(p)
+  
+  // Special cases
+  if (bigP <= 1n) {
+    throw new PrimeMathError('Modulus must be positive')
+  }
+  
+  if (!isPrime(bigP)) {
+    throw new PrimeMathError('Modulus should be prime for reliable results')
+  }
+  
+  // Handle special cases
+  if (bigA % bigP === 0n) {
+    return true // 0 is a quadratic residue
+  }
+  
+  // For small primes, check by brute force
+  if (bigP < 100n) {
+    for (let x = 1n; x < bigP; x++) {
+      if ((x * x) % bigP === bigA % bigP) {
+        return true
+      }
+    }
+    return false
+  }
+  
+  // For larger primes, use Euler's criterion: a^((p-1)/2) ≡ 1 (mod p) if a is a quadratic residue
+  const power = (bigP - 1n) / 2n
+  
+  // Modular exponentiation
+  let result = 1n
+  let base = bigA % bigP
+  let exp = power
+  
+  while (exp > 0n) {
+    if (exp % 2n === 1n) {
+      result = (result * base) % bigP
+    }
+    base = (base * base) % bigP
+    exp /= 2n
+  }
+  
+  // If result is congruent to 1, then a is a quadratic residue
+  return result === 1n
+}
+
 module.exports = {
   PrimeMathError,
   fastExp,
@@ -900,5 +1095,9 @@ module.exports = {
   factorial,
   primeCache,
   getPrimeRange,
-  primeGenerator
+  primeGenerator,
+  getNthPrime,
+  isMersennePrime,
+  moebiusFunction,
+  quadraticResidue
 }
