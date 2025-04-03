@@ -2439,7 +2439,7 @@ const Conversion = {
             for (let i = 0; i < k; i++) {
               // Choose a random witness between 2 and n-2
               // Generate a random witness in a safe range
-              const maxRand = (n - 4n) < BigInt(Number.MAX_SAFE_INTEGER) ? Number(n - 4n) : Number.MAX_SAFE_INTEGER;
+              const maxRand = (n - 4n) < BigInt(Number.MAX_SAFE_INTEGER) ? Number(n - 4n) : Number.MAX_SAFE_INTEGER
               const a = 2n + BigInt(Math.floor(Math.random() * maxRand))
               
               let x = modPow(a, d, n)
@@ -2467,7 +2467,7 @@ const Conversion = {
        * @param {bigint} modulus - Modulus value
        * @returns {bigint} Result of base^exponent mod modulus
        */
-      const modPow = (base, exponent, modulus) => {
+          const modPow = (base, exponent, modulus) => {
             if (modulus === 1n) return 0n
             let result = 1n
             let baseCopy = base % modulus
