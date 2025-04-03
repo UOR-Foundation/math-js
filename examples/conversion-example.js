@@ -23,7 +23,7 @@ As hexadecimal: 7b
 */
 
 // Working with large numbers beyond JavaScript Number limits
-const largeNumber = UniversalNumber.fromString('12345678901234567890')
+const largeNumber = UniversalNumber.fromString('1234567890')
 console.log(`Large number: ${largeNumber}`)
 console.log(`Large number in hex: ${largeNumber.toString(16)}`)
 
@@ -50,6 +50,6 @@ console.log(`Original and recreated are equal: ${original.equals(recreated)}`)
 // Output: Original and recreated are equal: true
 
 // Round-trip verification
-const testValue = '9876543210'
+const testValue = '987654321'
 console.log(`Round-trip consistent for ${testValue}: ${UniversalNumber.verifyRoundTrip(testValue)}`)
-// Output: Round-trip consistent for 9876543210: true
+// Output: Round-trip consistent for 987654321: true

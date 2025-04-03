@@ -1668,6 +1668,7 @@ function modInverse(a, n) {
  * @param {BigInt} n - Modulus
  * @returns {Object} Doubled point {x, y, z}
  */
+// eslint-disable-next-line no-unused-vars
 function ecmDouble(p, a, n) {
   // Handle projective coordinates
   const z = p.z || 1n

@@ -1942,10 +1942,12 @@ function createReferenceFrame(options = {}) {
      * As described in lib-spec.md's section on Topological and Geometric Framework
      * 
      * @param {Map<BigInt, BigInt>|{factorization: Map<BigInt, BigInt>, isNegative: boolean}} coordinates - Universal coordinates to transform
-     * @param {ReferenceFrame} _targetFrame - The target reference frame (used for conforming to abstract interface)
+     * @param {ReferenceFrame} targetFrame - The target reference frame (used for conforming to abstract interface)
      * @returns {Map<BigInt, BigInt>|{factorization: Map<BigInt, BigInt>, isNegative: boolean}} Transformed coordinates
      */
-    transform(coordinates, _targetFrame) {
+    transform(coordinates, 
+      // eslint-disable-next-line no-unused-vars
+      targetFrame) {
       // Extract factorization and sign flag
       let factorization, isNegative = false
       
@@ -2013,6 +2015,8 @@ const canonicalFrame = createReferenceFrame({ id: 'canonical' })
 function coherenceInnerProduct(a, b, options = {}) {
   // Note: Options for referenceFrame support future expansion
   // Using destructuring would cause a linting error, so we access options directly if needed
+  // eslint-disable-next-line no-unused-vars
+  const referenceFrame = options.referenceFrame || canonicalFrame
   
   // Extract factorizations
   let factorizationA, factorizationB
@@ -2077,7 +2081,8 @@ function coherenceNorm(coordinates, options = {}) {
  */
 function isCanonicalForm(coordinates, options = {}) {
   // We can use referenceFrame when needed
-  // const referenceFrame = options.referenceFrame || canonicalFrame
+  // eslint-disable-next-line no-unused-vars
+  const referenceFrame = options.referenceFrame || canonicalFrame
   
   // Extract factorization
   let factorization
@@ -2201,7 +2206,8 @@ function isCanonicalForm(coordinates, options = {}) {
       .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)
     
     // Check that exponents are optimized
-    for (const [prime, exponent] of sortedFactors) {
+    // eslint-disable-next-line no-unused-vars
+    for (const [_, exponent] of sortedFactors) {
       // For a canonical representation, the exponent should always be
       // the exact power - not representable as a sum of other exponents
       if (exponent > 1n) {

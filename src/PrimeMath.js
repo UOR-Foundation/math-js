@@ -24,6 +24,7 @@ const {
   millerRabinTest, 
   fromPrimeFactors,
   factorMapToArray,
+  // eslint-disable-next-line no-unused-vars
   pollardRho
 } = require('./Factorization')
 
