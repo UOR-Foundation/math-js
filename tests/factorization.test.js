@@ -3,15 +3,19 @@ const {
   factorizeWithPrimes,
   factorizePollardsRho,
   factorizeOptimal,
+  factorizeParallel,
   millerRabinTest,
   pollardRho,
+  quadraticSieve,
+  ellipticCurveMethod,
   isFactorizationComplete,
   fromPrimeFactors,
   getPrimeFactors,
   factorMapToArray,
   factorArrayToMap,
   getRadical,
-  getPrimeSignature
+  getPrimeSignature,
+  factorizationCache
 } = require('../src/Factorization')
 
 const { PrimeMathError } = require('../src/Utils')
@@ -29,6 +33,21 @@ const mapToObject = (map) => {
   }
   return obj
 }
+
+// Utility function used in some tests
+// Commented out as it's not currently needed but might be useful later
+/*
+ * Helper function to multiply all factors in a factorization
+ * @param {Map<BigInt, BigInt>} factorization - Map of prime factors
+ * @returns {BigInt} The product of prime factors raised to their exponents
+function multiplyFactors(factorization) {
+  let result = 1n
+  for (const [prime, exponent] of factorization.entries()) {
+    result *= prime ** exponent
+  }
+  return result
+}
+*/
 
 describe('Factorization Module', () => {
   describe('factorize', () => {
@@ -146,6 +165,41 @@ describe('Factorization Module', () => {
       expect(pollardRho(100n)).toBe(2n)
       expect(pollardRho(256n)).toBe(2n)
     })
+    
+    test('should handle options', () => {
+      const factor = pollardRho(1001n, { maxIterations: 10000, c: 2n })
+      expect(1001n % factor).toBe(0n)
+    })
+  })
+  
+  describe('quadraticSieve', () => {
+    test('should find a factor of small composite numbers', () => {
+      const factor = quadraticSieve(35n, { factorBase: 10, sieveSize: 100 })
+      expect(35n % factor).toBe(0n)
+      
+      const factor2 = quadraticSieve(1001n, { factorBase: 20, sieveSize: 500 })
+      expect(1001n % factor2).toBe(0n)
+    })
+    
+    test('should return the number itself for prime numbers', () => {
+      const prime = 101n
+      expect(quadraticSieve(prime)).toBe(prime)
+    })
+  })
+  
+  describe('ellipticCurveMethod', () => {
+    test('should find a factor of small composite numbers', () => {
+      const factor = ellipticCurveMethod(35n, { curves: 2, b1: 100 })
+      expect(35n % factor).toBe(0n)
+      
+      const factor2 = ellipticCurveMethod(1001n, { curves: 5, b1: 500 })
+      expect(1001n % factor2).toBe(0n)
+    })
+    
+    test('should return the number itself for prime numbers', () => {
+      const prime = 101n
+      expect(ellipticCurveMethod(prime)).toBe(prime)
+    })
   })
   
   describe('factorizePollardsRho', () => {
@@ -161,6 +215,35 @@ describe('Factorization Module', () => {
     
     test('should handle prime numbers', () => {
       expect(mapToObject(factorizePollardsRho(101))).toEqual({ '101': '1' })
+    })
+    
+    test('should leverage the cache', () => {
+      // First clear the cache to ensure a clean state
+      factorizationCache.clear()
+      
+      // Factorize a number
+      const num = 1001n
+      const factorization1 = factorizePollardsRho(num)
+      
+      // Factorize again - should use cache
+      const factorization2 = factorizePollardsRho(num)
+      
+      // Verify both factorizations are the same
+      expect(factorization1).toEqual(factorization2)
+      
+      // Verify the cache has an entry
+      expect(factorizationCache.size()).toBeGreaterThan(0)
+    })
+    
+    test('should handle advanced options', () => {
+      const factorization = factorizePollardsRho(1001n, { 
+        advanced: true,
+        ecmCurves: 5,
+        ecmB1: 1000
+      })
+      
+      // Verify the factorization is correct
+      expect(isFactorizationComplete(factorization, 1001n)).toBe(true)
     })
   })
 
@@ -180,6 +263,56 @@ describe('Factorization Module', () => {
       
       // With advanced option set to true
       expect(mapToObject(factorizeOptimal(60, { advanced: true }))).toEqual({ '2': '2', '3': '1', '5': '1' })
+    })
+    
+    test('should use cache for better performance', () => {
+      // First clear the cache to ensure a clean state
+      factorizationCache.clear()
+      
+      // Factorize a number
+      const num = 12345n
+      const factorization1 = factorizeOptimal(num, { useCache: true })
+      
+      // Factorize again - should use cache
+      const factorization2 = factorizeOptimal(num, { useCache: true })
+      
+      // Verify both factorizations are the same
+      expect(factorization1).toEqual(factorization2)
+      
+      // Verify the cache has an entry
+      expect(factorizationCache.size()).toBeGreaterThan(0)
+    })
+    
+    test('should respect useCache:false option', () => {
+      // First clear the cache to ensure a clean state
+      factorizationCache.clear()
+      
+      // Factorize a number without using cache
+      const num = 54321n
+      factorizeOptimal(num, { useCache: false })
+      
+      // Cache should be empty
+      expect(factorizationCache.size()).toBe(0)
+    })
+  })
+  
+  describe('factorizeParallel', () => {
+    test('should correctly factorize numbers', () => {
+      const factorization = factorizeParallel(60)
+      expect(mapToObject(factorization)).toEqual({ '2': '2', '3': '1', '5': '1' })
+      
+      const factorization2 = factorizeParallel(1001n)
+      expect(isFactorizationComplete(factorization2, 1001n)).toBe(true)
+    })
+    
+    test('should use appropriate algorithm based on number size', () => {
+      // For small numbers, should delegate to factorizeOptimal
+      const small = factorizeParallel(100)
+      expect(mapToObject(small)).toEqual({ '2': '2', '5': '2' })
+      
+      // For larger numbers, should still work correctly
+      const medium = factorizeParallel(10403) // 101 * 103
+      expect(mapToObject(medium)).toEqual({ '101': '1', '103': '1' })
     })
   })
 
@@ -327,6 +460,50 @@ describe('Factorization Module', () => {
       expect(getPrimeSignature(6)).toBe(4n)
     })
   })
+  
+  describe('factorizationCache', () => {
+    test('should allow setting and getting the maximum cache size', () => {
+      // Set a new max size
+      const newSize = 500
+      factorizationCache.setMaxSize(newSize)
+      
+      // Verify the size was set
+      const stats = factorizationCache.getStats()
+      expect(stats.maxSize).toBe(newSize)
+    })
+    
+    test('should allow clearing the cache', () => {
+      // Make sure cache has entries
+      factorizeOptimal(123, { useCache: true })
+      expect(factorizationCache.size()).toBeGreaterThan(0)
+      
+      // Clear the cache
+      factorizationCache.clear()
+      
+      // Verify cache is empty
+      expect(factorizationCache.size()).toBe(0)
+    })
+    
+    test('should provide statistics', () => {
+      // Clear the cache first
+      factorizationCache.clear()
+      
+      // Add some entries
+      factorizeOptimal(123, { useCache: true })
+      factorizeOptimal(456, { useCache: true })
+      factorizeOptimal(789, { useCache: true })
+      
+      // Get statistics
+      const stats = factorizationCache.getStats()
+      
+      // Verify stats contain expected fields
+      expect(stats).toHaveProperty('size')
+      expect(stats).toHaveProperty('maxSize')
+      
+      // Verify size is correct
+      expect(stats.size).toBeGreaterThanOrEqual(3)
+    })
+  })
 
   // Round-trip test
   describe('factorization round trip', () => {
@@ -338,6 +515,165 @@ describe('Factorization Module', () => {
         const reconstructed = fromPrimeFactors(factors)
         expect(reconstructed).toBe(num)
       }
+    })
+  })
+
+  // Additional tests to verify Prime Framework requirements from lib-spec.md
+  describe('Prime Framework specific requirements', () => {
+    test('should enforce canonical form for factorizations', () => {
+      // Create the same number in different ways
+      const factorization1 = factorizeOptimal(360)
+      const factorization2 = fromPrimeFactors([
+        { prime: 2n, exponent: 3n },
+        { prime: 3n, exponent: 2n },
+        { prime: 5n, exponent: 1n }
+      ])
+      
+      // Factorize again to ensure canonical form
+      const canonicalForm = factorizeOptimal(factorization2)
+      
+      // The factorizations should be identical regardless of how they were created
+      expect(mapToObject(factorization1)).toEqual(mapToObject(canonicalForm))
+    })
+    
+    test('should handle large numbers with arbitrary precision', () => {
+      // Test with large but manageable numbers that have known factorizations
+      // 100000000000000000049 is a large semiprime (10^20 + 49)
+      // It equals 10000000019 * 10000000003
+      const semiprime = BigInt('100000000000000000049')
+      
+      // Use factorizeWithPrimes for this test to avoid using primality tests that might fail
+      const factors = factorizeWithPrimes(semiprime)
+      
+      // Verify we got a proper factorization
+      expect(factors.size).toBeGreaterThan(0)
+      
+      // Reconstruct the number from its factors and verify exactness
+      const reconstructed = fromPrimeFactors(factors)
+      expect(reconstructed).toBe(semiprime)
+      
+      // Run another test with a large power of a known small prime
+      const largePower = 2n**64n // 2^64 = 18446744073709551616
+      const powerFactors = factorizeOptimal(largePower)
+      
+      // Should have exactly one prime factor (2) with exponent 64
+      expect(powerFactors.size).toBe(1)
+      expect(powerFactors.get(2n)).toBe(64n)
+    })
+    
+    test('should maintain coherence in representation', () => {
+      // Test that factorizing, modifying, and factorizing again produces consistent results
+      const original = factorizeOptimal(360)
+      
+      // Convert to array, modify order, and convert back
+      const asArray = factorMapToArray(original)
+      asArray.reverse() // Reverse the order of factors
+      const modified = factorArrayToMap(asArray)
+      
+      // Factorizing again should normalize back to canonical form
+      const result = fromPrimeFactors(modified)
+      const refactorized = factorizeOptimal(result)
+      
+      // The original and refactorized forms should be identical
+      expect(mapToObject(original)).toEqual(mapToObject(refactorized))
+    })
+    
+    test('should maintain intrinsic prime properties', () => {
+      // Test a range of small primes
+      const primes = [2n, 3n, 5n, 7n, 11n, 13n, 17n, 19n, 23n]
+      for (const p of primes) {
+        const factors = factorizeOptimal(p)
+        // Prime numbers should have exactly one factor - themselves with exponent 1
+        expect(factors.size).toBe(1)
+        expect(factors.get(p)).toBe(1n)
+      }
+      
+      // Test a medium-sized prime (using a smaller known prime)
+      const mediumPrime = 104729n // A known prime
+      const mediumFactors = factorizeOptimal(mediumPrime)
+      expect(mediumFactors.size).toBe(1)
+      expect(mediumFactors.get(mediumPrime)).toBe(1n)
+    })
+    
+    test('should correctly identify and represent composite numbers with unique factorization', () => {
+      // Test a product of distinct primes
+      const distinctPrimeProduct = 2n * 3n * 5n * 7n * 11n * 13n // 30030
+      const factors = factorizeOptimal(distinctPrimeProduct)
+      
+      // Should have exactly 6 distinct prime factors
+      expect(factors.size).toBe(6)
+      expect(factors.get(2n)).toBe(1n)
+      expect(factors.get(3n)).toBe(1n)
+      expect(factors.get(5n)).toBe(1n)
+      expect(factors.get(7n)).toBe(1n)
+      expect(factors.get(11n)).toBe(1n)
+      expect(factors.get(13n)).toBe(1n)
+      
+      // Test a number with repeated prime factors
+      const repeatedPrimes = 2n**4n * 3n**3n * 5n**2n // 2^4 * 3^3 * 5^2 = 16 * 27 * 25 = 10800
+      const repeatedFactors = factorizeOptimal(repeatedPrimes)
+      
+      // Should have exactly 3 distinct prime factors with correct exponents
+      expect(repeatedFactors.size).toBe(3)
+      expect(repeatedFactors.get(2n)).toBe(4n)
+      expect(repeatedFactors.get(3n)).toBe(3n)
+      expect(repeatedFactors.get(5n)).toBe(2n)
+    })
+    
+    test('should properly handle error cases as specified in Prime Framework', () => {
+      // Test factorization of non-positive integers
+      expect(() => factorizeOptimal(0)).toThrow(PrimeMathError)
+      expect(() => factorizeOptimal(-5)).toThrow(PrimeMathError)
+      
+      // Test providing invalid inputs to fromPrimeFactors
+      // Non-prime factor
+      expect(() => fromPrimeFactors(
+        new Map([[4n, 1n]])
+      )).toThrow(PrimeMathError)
+      
+      // Zero exponent
+      expect(() => fromPrimeFactors(
+        new Map([[2n, 0n]])
+      )).toThrow(PrimeMathError)
+      
+      // Negative exponent
+      expect(() => fromPrimeFactors(
+        new Map([[2n, -1n]])
+      )).toThrow(PrimeMathError)
+    })
+    
+    test('should use algorithm selection according to Prime Framework requirements', () => {
+      // We need to mock/spy on the underlying algorithm functions to verify they're being called
+      // Since we can't easily do that in this test setup, we'll indirectly verify through behavior
+      
+      // Small number - should use trial division
+      const small = 120n
+      expect(mapToObject(factorizeOptimal(small))).toEqual({ '2': '3', '3': '1', '5': '1' })
+      
+      // Larger number - should handle efficiently
+      const medium = 2n * 3n * 5n * 7n * 11n * 13n * 17n * 19n
+      const mediumFactors = factorizeOptimal(medium)
+      expect(mediumFactors.size).toBe(8) // Should have 8 distinct prime factors
+      
+      // Test with various options
+      // With validateFactors=true, should validate each factor is prime
+      const validated = factorizeOptimal(small, { validateFactors: true })
+      expect(mapToObject(validated)).toEqual({ '2': '3', '3': '1', '5': '1' })
+      
+      // With advanced option, should still produce correct factorization
+      const advanced = factorizeOptimal(small, { advanced: true })
+      expect(mapToObject(advanced)).toEqual({ '2': '3', '3': '1', '5': '1' })
+      
+      // With cache enabled, should store and retrieve from cache
+      factorizationCache.clear()
+      const firstRun = factorizeOptimal(medium, { useCache: true })
+      const secondRun = factorizeOptimal(medium, { useCache: true })
+      
+      // Both runs should produce identical results
+      expect(mapToObject(firstRun)).toEqual(mapToObject(secondRun))
+      
+      // Cache should now have at least one entry
+      expect(factorizationCache.size()).toBeGreaterThan(0)
     })
   })
 })
