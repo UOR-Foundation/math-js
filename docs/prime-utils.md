@@ -1,197 +1,94 @@
-# Prime Utility Functions in the Math-JS Library
+# Prime Utilities in Math-JS
 
-This documentation describes the prime number utilities provided by the Math-JS library through the Utils module. These functions adhere to the Prime Framework principles, ensuring exactness, efficiency, and robustness while working with prime numbers.
+The Math-JS library provides robust utilities for working with prime numbers, built on the Prime Framework's principles of exact arithmetic and universal representation.
 
-## Core Functions
+## Prime Generation
 
-### `isPrime(n, options)`
+### Configurable Segmented Sieve
 
-Determines whether a number is prime using an efficient combination of trial division and probabilistic primality testing.
+The library implements a memory-efficient Segmented Sieve of Eratosthenes algorithm for generating prime numbers within a range. The segmented approach allows for efficient prime generation even for very large ranges by processing the range in manageable chunks (segments).
 
-```javascript
-const { isPrime } = require('math-js').internal.Utils;
+#### Configuration Options
 
-// Basic usage
-isPrime(17);    // true
-isPrime(25);    // false
-
-// With options
-isPrime(10007, { useCache: true, updateCache: true });
-```
-
-#### Parameters:
-- `n` (BigInt|number|string): The number to test for primality
-- `options` (Object, optional): Configuration options
-  - `useCache` (boolean): Whether to use the prime cache (default: true)
-  - `updateCache` (boolean): Whether to update the cache with result (default: true)
-
-#### Returns:
-- (boolean): True if the number is prime, false otherwise
-
-### `nextPrime(n)`
-
-Finds the next prime number greater than or equal to a given value.
+You can configure the behavior of the segmented sieve through the global configuration system or by passing options directly to the `getPrimeRange` function:
 
 ```javascript
-const { nextPrime } = require('math-js').internal.Utils;
+const { configure } = require('math-js/config');
+const { getPrimeRange } = require('math-js');
 
-nextPrime(10);    // 11n
-nextPrime(11);    // 11n
-nextPrime(20);    // 23n
-```
-
-#### Parameters:
-- `n` (BigInt|number|string): The starting value
-
-#### Returns:
-- (BigInt): The next prime number
-
-### `getPrimeRange(start, end)`
-
-Returns all prime numbers within a specified range, inclusive of both ends.
-
-```javascript
-const { getPrimeRange } = require('math-js').internal.Utils;
-
-// Get primes between 10 and 30
-const primes = getPrimeRange(10, 30);  // [11n, 13n, 17n, 19n, 23n, 29n]
-```
-
-#### Parameters:
-- `start` (BigInt|number|string): The lower bound (inclusive)
-- `end` (BigInt|number|string): The upper bound (inclusive)
-
-#### Returns:
-- (BigInt[]): Array of prime numbers in the specified range
-
-### `primeGenerator(options)`
-
-Creates a generator that yields sequential prime numbers.
-
-```javascript
-const { primeGenerator } = require('math-js').internal.Utils;
-
-// Basic generator starting from 2
-const generator = primeGenerator();
-const firstPrimes = [];
-for (let i = 0; i < 5; i++) {
-  firstPrimes.push(generator.next().value);
-}
-// firstPrimes: [2n, 3n, 5n, 7n, 11n]
-
-// With options
-const gen = primeGenerator({ 
-  start: 100, 
-  end: 120,
-  count: 3 
+// Configure globally
+configure({
+  primalityTesting: {
+    // Size of each segment (default: 1,000,000)
+    segmentedSieveSize: 500000,
+    
+    // Whether to use dynamic sizing based on range and environment
+    dynamicSegmentSizing: true
+  }
 });
-const primes = Array.from(gen);  // [101n, 103n, 107n]
+
+// Or configure per operation
+const primes = getPrimeRange(1000n, 10000n, {
+  segmentSize: 1000,  // Override segment size for this call
+  dynamic: false      // Disable dynamic sizing for this call
+});
 ```
 
-#### Parameters:
-- `options` (Object, optional): Generator configuration
-  - `start` (BigInt|number): Starting value (default: 2)
-  - `end` (BigInt|number, optional): Ending value (inclusive)
-  - `count` (number, optional): Maximum number of primes to generate
+#### Dynamic Segment Sizing
 
-#### Returns:
-- (Generator<BigInt>): A generator that yields prime numbers
+When dynamic segment sizing is enabled (default), the library will automatically adjust the segment size based on:
+
+1. **Range Size**: Smaller segments for smaller ranges (better locality), larger segments for very large ranges (reduced overhead)
+2. **Environment**: More conservative memory usage in browser environments
+3. **Available Memory**: (Planned feature) Adjustment based on system memory availability
+
+#### Benefits
+
+- **Memory Efficiency**: Process arbitrarily large ranges with bounded memory usage
+- **Customization**: Tune performance vs. memory usage tradeoff to your needs
+- **Automatic Optimization**: Let the library choose optimal settings based on your data and environment
+
+## Advanced Prime Functions
+
+The library provides several utility functions for working with prime numbers:
+
+- `isPrime(n)`: Fast primality test with caching
+- `nextPrime(n)`: Get the next prime number after n
+- `getNthPrime(n)`: Get the nth prime number
+- `getPrimeRange(start, end, options)`: Get all primes in a range
+- `primeGenerator({ start, end, count })`: Generator function that yields prime numbers
 
 ## Prime Cache
 
-The module includes an efficient prime number cache to improve performance of repeated primality tests.
-
-### `primeCache`
-
-An object providing access to the internal prime cache, including statistics and management functions.
+For performance optimization, the library maintains a cache of known prime numbers. This cache is automatically managed but can be controlled through the configuration system:
 
 ```javascript
-const { primeCache } = require('math-js').internal.Utils;
-
-// Get statistics
-const count = primeCache.getKnownPrimeCount();
-const largest = primeCache.getLargestKnownPrime();
-const smallPrimes = primeCache.getSmallPrimes();
-
-// Manage cache
-primeCache.clear(1000n);  // Clear cache above 1000
-primeCache.setMaxCacheSize(50000);  // Set maximum cache size
-primeCache.setMaxCacheSize(10000, { aggressive: true }); // Set size and prune immediately
-const stats = primeCache.getStats(); // Get detailed cache statistics
-const maxSize = primeCache.getMaxCacheSize(); // Get the current maximum size
+configure({
+  cache: {
+    maxPrimeCacheSize: 100000  // Maximum number of entries
+  }
+});
 ```
 
-#### Methods:
-- `getKnownPrimeCount()`: Returns the number of primes in the cache
-- `getLargestKnownPrime()`: Returns the largest known prime in the cache
-- `getSmallPrimes()`: Returns an array of pre-cached small primes
-- `clear(threshold)`: Clears cache entries above the specified threshold
-- `setMaxCacheSize(size, options)`: Sets the maximum number of entries in the cache
-  - `options.aggressive`: If true, immediately prunes the cache to the new size
-- `getMaxCacheSize()`: Returns the current maximum cache size
-- `getStats()`: Returns detailed statistics about the cache, including utilization
+The cache size and other parameters can also be configured through the `primeCache` API:
 
-## Implementation Notes
-
-1. **Prime Caching**: The library maintains a cache of prime numbers to avoid redundant computations. This significantly improves performance for repeated primality tests.
-
-2. **Primality Testing Algorithms**:
-   - For small numbers: Trial division with optimizations
-   - For large numbers: Miller-Rabin primality test (deterministic for n < 2^64)
-
-3. **Memory Efficiency**: The segmented Sieve of Eratosthenes implementation allows for efficient generation of primes in large ranges without excessive memory usage.
-
-4. **Performance Considerations**:
-   - The cache is fully configurable through the global configuration system
-   - Cache size is limited by default but can be adjusted using `primeCache.setMaxCacheSize()`
-   - The cache automatically prunes itself to prevent unbounded growth
-   - For very large numbers, consider using options to control cache behavior
-   - Advanced statistics are available through `primeCache.getStats()` for performance tuning
-
-5. **Prime Framework Compliance**: All functions adhere to the Prime Framework's requirements for exactness and canonical representation.
-
-## Examples
-
-### Finding large primes efficiently
 ```javascript
-const { isPrime, nextPrime } = require('math-js').internal.Utils;
+const { primeCache } = require('math-js');
 
-// Find a prime larger than 1 million
-let p = 1000000n;
-while (!isPrime(p)) {
-  p++;
-}
-console.log(`First prime after one million: ${p}`);
+// Get statistics about the cache
+const stats = primeCache.getStats();
 
-// Alternatively, use nextPrime
-const q = nextPrime(1000000n);
-console.log(`Next prime after one million: ${q}`);
+// Clear cache for numbers above a threshold
+primeCache.clear(1000n);
+
+// Set maximum cache size
+primeCache.setMaxCacheSize(50000);
 ```
 
-### Working with prime ranges
-```javascript
-const { getPrimeRange } = require('math-js').internal.Utils;
+## Performance Considerations
 
-// Get all primes between 1000 and 1100
-const primes = getPrimeRange(1000, 1100);
-console.log(`Found ${primes.length} primes`);
-console.log(`Largest: ${primes[primes.length - 1]}`);
-```
+Prime generation and testing are fundamental operations in the Prime Framework, and their performance directly impacts many higher-level functions. Some guidelines for optimal performance:
 
-### Using the prime generator
-```javascript
-const { primeGenerator } = require('math-js').internal.Utils;
-
-// Generate the first 1000 primes
-const gen = primeGenerator({ count: 1000 });
-const primes = Array.from(gen);
-console.log(`1000th prime: ${primes[primes.length - 1]}`);
-
-// Generate primes until we find one > 10000
-const largeGen = primeGenerator({ start: 9900 });
-let prime;
-do {
-  prime = largeGen.next().value;
-} while (prime <= 10000n);
-console.log(`First prime > 10000: ${prime}`);
-```
+1. For repeated primality tests on the same numbers, ensure caching is enabled
+2. For generating primes in large ranges, use the segmented sieve with appropriately sized segments
+3. For extremely large numbers, consider the performance profile settings in the global configuration
