@@ -3,7 +3,7 @@
  */
 
 // Import the math-js library
-const mathjs = require('../src');
+const mathjs = require('@uor-foundation/math-js');
 const { UniversalNumber, PrimeMath, configure, createStream, createAsync } = mathjs;
 
 console.log('Enhanced Architecture and API Example');

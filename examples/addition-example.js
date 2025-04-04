@@ -1,5 +1,5 @@
 // Example of using the math-js library for addition
-const { UniversalNumber } = require('../src')
+const { UniversalNumber } = require('@uor-foundation/math-js')
 
 // Create two numbers
 const a = new UniversalNumber(123)
@@ -12,7 +12,7 @@ console.log(`${a} + ${b} = ${sum}`)
 // Output: 123 + 789 = 912
 
 // Example using the Utils module for fast exponentiation
-const { internal: { Utils } } = require('../src')
+const { internal: { Utils } } = require('@uor-foundation/math-js')
 
 const base = 2n
 const exponent = 10n

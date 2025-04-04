@@ -1,15 +1,12 @@
 # Release Process
 
-This document outlines the process for creating a new release of the `uor-math-js` package.
+This document outlines the process for creating a new release of the `@uor-foundation/math-js` package.
 
 ## Prerequisites
 
-1. Ensure you have appropriate permissions to publish to the NPM registry.
-2. Make sure you have a GitHub Personal Access Token with appropriate permissions.
-3. Configure your NPM token:
-   ```
-   npm config set //registry.npmjs.org/:_authToken=${NPM_TOKEN}
-   ```
+1. Ensure you have appropriate permissions to publish to GitHub Packages.
+2. Make sure you have a GitHub Personal Access Token with appropriate permissions if you need to publish manually.
+3. No additional configuration is needed for automated publishing through GitHub Actions, as it uses the built-in GITHUB_TOKEN.
 
 ## Release Steps
 
@@ -47,8 +44,8 @@ This document outlines the process for creating a new release of the `uor-math-j
    - Publish the release
 
 5. **Monitor the release**
-   - The GitHub Actions workflow will automatically publish the package to NPM
-   - Verify that the package has been published correctly: https://www.npmjs.com/package/uor-math-js
+   - The GitHub Actions workflow will automatically publish the package to GitHub Packages
+   - Verify that the package has been published correctly by checking the Packages section of the GitHub repository: https://github.com/UOR-Foundation/math-js/packages
 
 ## After Release
 
@@ -60,9 +57,13 @@ This document outlines the process for creating a new release of the `uor-math-j
 If the automatic publishing fails:
 
 1. Check the GitHub Actions logs for errors
-2. Ensure that the NPM_TOKEN secret is properly set in the repository
+2. Ensure that the workflow has proper permissions to write packages
 3. If necessary, you can publish manually:
    ```
+   # Authenticate with GitHub Packages
+   npm login --registry=https://npm.pkg.github.com --scope=@uor-foundation
+   
+   # Then build and publish
    npm ci
    npm run build
    npm publish

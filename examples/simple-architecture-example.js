@@ -2,7 +2,7 @@
  * Simple example demonstrating the enhanced library architecture
  */
 
-const mathjs = require('../src');
+const mathjs = require('@uor-foundation/math-js');
 const { UniversalNumber } = mathjs;
 
 console.log('Enhanced Architecture Example (Simplified)');

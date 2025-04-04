@@ -5,13 +5,19 @@ This document provides examples of how to use the Math-JS library, which impleme
 ## Installation
 
 ```bash
-npm install math-js
+npm install @uor-foundation/math-js
+```
+
+You may need to configure npm to use GitHub Packages by creating a `.npmrc` file in your project:
+
+```
+@uor-foundation:registry=https://npm.pkg.github.com
 ```
 
 ## Basic Usage
 
 ```javascript
-const { UniversalNumber } = require('math-js');
+const { UniversalNumber } = require('@uor-foundation/math-js');
 
 // Create a number
 const num = new UniversalNumber(42);

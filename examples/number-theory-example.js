@@ -1,5 +1,5 @@
 // Example of using the math-js library for number theory operations
-const { UniversalNumber } = require('../src')
+const { UniversalNumber } = require('@uor-foundation/math-js')
 
 // Create numbers
 const a = new UniversalNumber(42)

@@ -2,7 +2,7 @@
  * Example demonstrating the Prime Framework enhancements to the UniversalNumber class
  */
 
-const { UniversalNumber } = require('../src');
+const { UniversalNumber } = require('@uor-foundation/math-js');
 
 console.log('Prime Framework Enhancements Example');
 console.log('====================================');

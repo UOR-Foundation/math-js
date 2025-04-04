@@ -4,7 +4,7 @@
  */
 
 // Import the necessary modules
-const { UniversalNumber } = require('../src')
+const { UniversalNumber } = require('@uor-foundation/math-js')
 const { configure, config } = require('../src/config')
 
 // Original base limits (2-36 by default)
