@@ -192,7 +192,21 @@ const defaultConfig = {
      * Whether to use trial division before advanced primality tests
      * @type {boolean}
      */
-    useTrialDivision: true
+    useTrialDivision: true,
+    
+    /**
+     * Size of each segment for the segmented sieve of Eratosthenes algorithm
+     * Controls memory usage vs. performance tradeoff
+     * @type {number}
+     */
+    segmentedSieveSize: 1000000,
+    
+    /**
+     * Whether to dynamically adjust segment size based on range size
+     * and available system resources
+     * @type {boolean}
+     */
+    dynamicSegmentSizing: true
   },
   
   /**

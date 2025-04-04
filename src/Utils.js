@@ -571,10 +571,13 @@ function pruneCache() {
  * 
  * @param {BigInt|number} start - The lower bound of the range (inclusive)
  * @param {BigInt|number} end - The upper bound of the range (inclusive)
+ * @param {Object} [options] - Options for prime generation
+ * @param {BigInt|number} [options.segmentSize] - Size of each segment for the segmented sieve
+ * @param {boolean} [options.dynamic] - Whether to use dynamic segment sizing (overrides config)
  * @returns {BigInt[]} Array of prime numbers in the specified range
  * @throws {PrimeMathError} If parameters are invalid
  */
-function getPrimeRange(start, end) {
+function getPrimeRange(start, end, options = {}) {
   // Convert to BigInt
   start = toBigInt(start)
   end = toBigInt(end)
@@ -604,8 +607,19 @@ function getPrimeRange(start, end) {
     return primes
   }
   
-  // For larger ranges, use segmented sieve
-  return segmentedSieveOfEratosthenes(start, end)
+  // Prepare options for segmented sieve
+  const sieveOptions = {
+    segmentSize: options.segmentSize || null
+  }
+  
+  // Handle dynamic sizing option if explicitly specified
+  if (options.dynamic !== undefined) {
+    // Pass the dynamic option directly to the sieve
+    sieveOptions.dynamicSegmentSizing = options.dynamic
+  }
+  
+  // For larger ranges, use segmented sieve with normal config
+  return segmentedSieveOfEratosthenes(start, end, sieveOptions)
 }
 
 /**
@@ -615,23 +629,57 @@ function getPrimeRange(start, end) {
  * @private
  * @param {BigInt} low - Lower bound (inclusive)
  * @param {BigInt} high - Upper bound (inclusive)
+ * @param {Object} [options] - Options for the sieve
+ * @param {BigInt|number} [options.segmentSize] - Size of each segment to process
  * @returns {BigInt[]} Array of primes in the range [low, high]
  */
-function segmentedSieveOfEratosthenes(low, high) {
+function segmentedSieveOfEratosthenes(low, high, options = {}) {
   const primes = []
-  const SEGMENT_SIZE = 1000000n // Size of each segment
+  
+  // Get segment size from options, or use the global configuration
+  let segmentSize = options.segmentSize ? toBigInt(options.segmentSize) : null
+  
+  if (!segmentSize) {
+    // If not provided, get from configuration
+    segmentSize = toBigInt(config.primalityTesting.segmentedSieveSize || 1000000)
+    
+    // Check if dynamic sizing is enabled (either from options or config)
+    const useDynamicSizing = options.dynamicSegmentSizing !== undefined 
+      ? options.dynamicSegmentSizing 
+      : config.primalityTesting.dynamicSegmentSizing
+    
+    // Apply dynamic sizing based on available memory if configured
+    if (useDynamicSizing) {
+      // Adjust segment size based on the size of the range
+      const rangeSize = high - low + 1n
+      
+      if (rangeSize < 10000000n) {
+        // For small ranges, use smaller segments for better RAM locality
+        segmentSize = 100000n
+      } else if (rangeSize > 1000000000n) {
+        // For very large ranges, use larger segments to reduce overhead
+        segmentSize = 10000000n
+      }
+      
+      // Further adjust based on environment constraints
+      if (typeof window !== 'undefined') {
+        // Browser environment - be more conservative with memory
+        segmentSize = segmentSize > 1000000n ? 1000000n : segmentSize
+      }
+    }
+  }
   
   // Generate small primes up to sqrt(high)
   const sqrtHigh = sqrt(high) + 1n
   const smallPrimes = basicSieveOfEratosthenes(sqrtHigh)
   
   // Process range in segments to save memory
-  for (let segmentStart = low; segmentStart <= high; segmentStart += SEGMENT_SIZE) {
-    const segmentEnd = segmentStart + SEGMENT_SIZE - 1n > high ? high : segmentStart + SEGMENT_SIZE - 1n
+  for (let segmentStart = low; segmentStart <= high; segmentStart += segmentSize) {
+    const segmentEnd = segmentStart + segmentSize - 1n > high ? high : segmentStart + segmentSize - 1n
     
     // Create a boolean array representing primality in current segment
-    const segmentSize = Number(segmentEnd - segmentStart + 1n)
-    const segment = new Array(segmentSize).fill(true)
+    const segmentSizeNumber = Number(segmentEnd - segmentStart + 1n)
+    const segment = new Array(segmentSizeNumber).fill(true)
     
     // Mark multiples of each small prime in the current segment
     for (const p of smallPrimes) {
@@ -653,7 +701,7 @@ function segmentedSieveOfEratosthenes(low, high) {
     }
     
     // Collect primes from current segment
-    for (let i = 0; i < segmentSize; i++) {
+    for (let i = 0; i < segmentSizeNumber; i++) {
       const num = segmentStart + BigInt(i)
       if (segment[i] && num >= 2n) {
         primes.push(num)
