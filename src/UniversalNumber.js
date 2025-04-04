@@ -176,13 +176,17 @@ class UniversalNumber {
         throw new PrimeMathError(`Prime factor ${prime} must be greater than 1`)
       }
       
-      // Verify primality for smaller numbers
-      if (prime < 1000000n && !isPrime(prime)) {
+      // Verify primality using appropriate method based on size
+      // Get the configurable primality verification threshold
+      const verificationThreshold = BigInt(config.primalityTesting.verificationThreshold)
+      
+      // For smaller numbers, use the fast isPrime check
+      if (prime < verificationThreshold && !isPrime(prime)) {
         throw new PrimeMathError(`Factor ${prime} is not a prime number`)
       }
       
-      // Use Miller-Rabin test for larger numbers
-      if (prime >= 1000000n && !millerRabinTest(prime)) {
+      // For larger numbers, use Miller-Rabin test with configurable rounds
+      if (prime >= verificationThreshold && !millerRabinTest(prime, { rounds: config.primalityTesting.millerRabinRounds })) {
         throw new PrimeMathError(`Factor ${prime} is not a prime number`)
       }
 

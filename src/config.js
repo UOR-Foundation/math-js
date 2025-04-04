@@ -262,7 +262,15 @@ const defaultConfig = {
      * Acts as a safety limit to prevent memory exhaustion
      * @type {number}
      */
-    maxPrimesGenerated: 10000000
+    maxPrimesGenerated: 10000000,
+    
+    /**
+     * Threshold for using different primality testing algorithms
+     * Numbers below this threshold use simple primality test
+     * Numbers above this threshold use Miller-Rabin test
+     * @type {number}
+     */
+    verificationThreshold: 1000000
   },
   
   /**
