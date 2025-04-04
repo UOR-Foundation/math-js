@@ -1,0 +1,221 @@
+{
+  "suites": {
+    "Small Test": {
+      "options": {
+        "verbose": false,
+        "warmupRuns": 1,
+        "iterations": 2
+      },
+      "cases": {
+        "Small number addition": {
+          "iterations": [
+            {
+              "duration": 0.2562280000000001,
+              "memoryUsed": 19472
+            },
+            {
+              "duration": 0.09124999999999517,
+              "memoryUsed": 18040
+            },
+            {
+              "duration": 0.06418000000000035,
+              "memoryUsed": 18040
+            },
+            {
+              "duration": 0.13385999999999854,
+              "memoryUsed": 18040
+            },
+            {
+              "duration": 0.05635600000000096,
+              "memoryUsed": -318672
+            }
+          ],
+          "avgTime": 0.12037479999999903,
+          "minTime": 0.05635600000000096,
+          "maxTime": 0.2562280000000001,
+          "stdDev": 0.07313338340976727,
+          "relativeStdDev": 0.6075472890486037,
+          "opsPerSecond": 8307.386595865646,
+          "totalTime": 0.6018739999999951,
+          "avgMemory": -49016,
+          "timestamp": "2025-04-04T06:02:11.234Z"
+        },
+        "Small number multiplication": {
+          "iterations": [
+            {
+              "duration": 0.025818999999998482,
+              "memoryUsed": 14120
+            },
+            {
+              "duration": 0.02100899999999939,
+              "memoryUsed": 14040
+            },
+            {
+              "duration": 0.019826999999999373,
+              "memoryUsed": 14040
+            },
+            {
+              "duration": 0.08851500000000101,
+              "memoryUsed": 14040
+            },
+            {
+              "duration": 0.030015999999996268,
+              "memoryUsed": 14040
+            }
+          ],
+          "avgTime": 0.0370371999999989,
+          "minTime": 0.019826999999999373,
+          "maxTime": 0.08851500000000101,
+          "stdDev": 0.025993088822993823,
+          "relativeStdDev": 0.7018103102554889,
+          "opsPerSecond": 26999.881200523516,
+          "totalTime": 0.18518599999999452,
+          "avgMemory": 14056,
+          "timestamp": "2025-04-04T06:02:11.235Z"
+        },
+        "Factorization of small composite": {
+          "iterations": [
+            {
+              "duration": 0.008456000000002462,
+              "memoryUsed": 5776
+            },
+            {
+              "duration": 0.009126999999999441,
+              "memoryUsed": 5776
+            },
+            {
+              "duration": 0.007474000000001979,
+              "memoryUsed": 5776
+            },
+            {
+              "duration": 0.0073539999999994166,
+              "memoryUsed": 5776
+            },
+            {
+              "duration": 0.008426000000000045,
+              "memoryUsed": 5784
+            }
+          ],
+          "avgTime": 0.008167400000000668,
+          "minTime": 0.0073539999999994166,
+          "maxTime": 0.009126999999999441,
+          "stdDev": 0.0006653449030388037,
+          "relativeStdDev": 0.08146348936488347,
+          "opsPerSecond": 122437.98516050618,
+          "totalTime": 0.04083700000000334,
+          "avgMemory": 5777.6,
+          "timestamp": "2025-04-04T06:02:11.236Z"
+        },
+        "Primality testing": {
+          "iterations": [
+            {
+              "duration": 0.020198000000000604,
+              "memoryUsed": 13392
+            },
+            {
+              "duration": 0.07033100000000303,
+              "memoryUsed": 13392
+            },
+            {
+              "duration": 0.03395400000000137,
+              "memoryUsed": 13536
+            },
+            {
+              "duration": 0.018293999999997368,
+              "memoryUsed": 13424
+            },
+            {
+              "duration": 0.017772999999998262,
+              "memoryUsed": 13424
+            }
+          ],
+          "avgTime": 0.032110000000000125,
+          "minTime": 0.017772999999998262,
+          "maxTime": 0.07033100000000303,
+          "stdDev": 0.020012857597056673,
+          "relativeStdDev": 0.6232593459064651,
+          "opsPerSecond": 31142.946122703088,
+          "totalTime": 0.16055000000000064,
+          "avgMemory": 13433.6,
+          "timestamp": "2025-04-04T06:02:11.236Z"
+        },
+        "Base conversion": {
+          "iterations": [
+            {
+              "duration": 0.034813999999997236,
+              "memoryUsed": 18104
+            },
+            {
+              "duration": 0.028012999999994292,
+              "memoryUsed": 18104
+            },
+            {
+              "duration": 0.022131000000001677,
+              "memoryUsed": 18104
+            },
+            {
+              "duration": 0.021068999999997118,
+              "memoryUsed": 18104
+            },
+            {
+              "duration": 0.02234200000000186,
+              "memoryUsed": 18104
+            }
+          ],
+          "avgTime": 0.025673799999998435,
+          "minTime": 0.021068999999997118,
+          "maxTime": 0.034813999999997236,
+          "stdDev": 0.005174391148723201,
+          "relativeStdDev": 0.201543641717374,
+          "opsPerSecond": 38950.21383667634,
+          "totalTime": 0.12836899999999218,
+          "avgMemory": 18104,
+          "timestamp": "2025-04-04T06:02:11.237Z"
+        }
+      },
+      "summary": {
+        "totalTime": 1.1168159999999858,
+        "fastest": {
+          "name": "Factorization of small composite",
+          "opsPerSecond": 122437.98516050618
+        },
+        "slowest": {
+          "name": "Small number addition",
+          "opsPerSecond": 8307.386595865646
+        }
+      },
+      "totalDuration": 7.397877999999999
+    }
+  },
+  "system": {
+    "platform": "linux",
+    "arch": "x64",
+    "nodeVersion": "v20.19.0",
+    "cpuCores": 2,
+    "totalMemory": 8324337664
+  },
+  "timestamp": "2025-04-04T06:02:11.220Z",
+  "libraryVersion": "0.1.0",
+  "globalConfig": {
+    "performanceProfile": "balanced",
+    "cache": {
+      "enabled": true,
+      "maxSize": 10485760,
+      "evictionPolicy": "lru"
+    },
+    "factorization": {
+      "lazy": true,
+      "completeSizeLimit": 100,
+      "algorithm": "auto"
+    },
+    "async": {
+      "useWorkers": true,
+      "defaultTimeout": 30000,
+      "reportProgress": true
+    },
+    "memory": {
+      "optimizeMemory": false,
+      "useCompactRepresentation": false
+    }
+  }
+}

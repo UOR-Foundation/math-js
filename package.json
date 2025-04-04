@@ -8,7 +8,12 @@
     "lint": "eslint src tests",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "docs": "jsdoc -c jsdoc.json"
+    "docs": "jsdoc -c jsdoc.json",
+    "benchmark": "node benchmarks/run.js",
+    "benchmark:gc": "node --expose-gc benchmarks/run.js",
+    "benchmark:analyze": "node benchmarks/run.js --analyze",
+    "benchmark:visualize": "node benchmarks/run.js --analyze --visualize",
+    "benchmark:memory": "node --expose-gc benchmarks/run.js memory-usage --verbose"
   },
   "keywords": [
     "mathematics",
