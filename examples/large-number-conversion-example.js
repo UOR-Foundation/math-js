@@ -2,7 +2,7 @@
  * Example demonstrating large number conversion options in UniversalNumber
  */
 
-const { UniversalNumber } = require('../src')
+const { UniversalNumber } = require('@uor-foundation/math-js')
 
 console.log('UniversalNumber Large Number Conversion Example')
 console.log('==============================================')

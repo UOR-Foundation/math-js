@@ -1,11 +1,11 @@
 // Example of using the math-js library for prime factorization
-const { UniversalNumber, configure } = require('../src')
+const { UniversalNumber, configure } = require('@uor-foundation/math-js')
 const { 
   factorizeOptimal, 
   factorizeParallel, 
   factorizationCache,
   ellipticCurveMethod
-} = require('../src').internal.Factorization
+} = require('@uor-foundation/math-js').internal.Factorization
 
 console.log('=== Basic Factorization with UniversalNumber ===')
 

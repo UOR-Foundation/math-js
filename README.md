@@ -11,13 +11,22 @@ The library introduces **Universal Numbers** – integers encoded by their compl
 ## Installation
 
 ```bash
-npm install uor-math-js
+# Install from GitHub Packages
+npm install @uor-foundation/math-js
 ```
+
+You may need to configure npm to use GitHub Packages by creating a `.npmrc` file in your project:
+
+```
+@uor-foundation:registry=https://npm.pkg.github.com
+```
+
+If you're using a private repository, you'll need to authenticate with GitHub Packages. See [GitHub's documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#authenticating-to-github-packages) for more details.
 
 ## Basic Usage
 
 ```javascript
-const { UniversalNumber, PrimeMath } = require('uor-math-js');
+const { UniversalNumber, PrimeMath } = require('@uor-foundation/math-js');
 
 // Create universal numbers
 const a = UniversalNumber.fromNumber(42);
@@ -53,7 +62,7 @@ const decimalString = product.toString();
 The library includes a comprehensive configuration system that allows you to adjust memory usage, computation limits, and performance trade-offs:
 
 ```javascript
-const math = require('uor-math-js');
+const math = require('@uor-foundation/math-js');
 
 // Configure the library according to your needs
 math.configure({

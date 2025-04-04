@@ -1,5 +1,5 @@
 // Example of using the math-js library for number conversions
-const { UniversalNumber } = require('../src')
+const { UniversalNumber } = require('@uor-foundation/math-js')
 
 // Create a UniversalNumber from various sources
 const fromNumber = UniversalNumber.fromNumber(123)

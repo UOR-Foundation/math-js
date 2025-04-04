@@ -1,5 +1,19 @@
 # Math-JS API Documentation
 
+## Installation
+
+To install the package from GitHub Packages:
+
+```bash
+npm install @uor-foundation/math-js
+```
+
+You may need to configure npm to use GitHub Packages by creating a `.npmrc` file in your project:
+
+```
+@uor-foundation:registry=https://npm.pkg.github.com
+```
+
 This document provides the complete API reference for the Math-JS library and the Universal Number framework.
 
 ## Core Classes
@@ -141,7 +155,7 @@ Conversion.toString(factorization, base) // Convert to string in any base
 The library supports dynamic loading of components based on need:
 
 ```javascript
-const { loadComponent } = require('math-js/dynamicLoader');
+const { loadComponent } = require('@uor-foundation/math-js/dynamicLoader');
 const advancedFactorization = await loadComponent('AdvancedFactorization');
 ```
 
