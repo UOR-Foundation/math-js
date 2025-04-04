@@ -20,6 +20,12 @@ jobs:
       - run: npm run build
       - name: Run examples
         run: |
+          # Temporarily modify requires in examples to use local src instead of npm package
+          for file in examples/*.js; do
+            sed -i 's|require(.@uor-foundation/math-js.)|require("../dist")|g' "$file"
+          done
+          
+          # Run the examples
           for file in examples/*.js; do
             echo "Running $file"
             node "$file"
