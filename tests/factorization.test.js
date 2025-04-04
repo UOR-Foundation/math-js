@@ -200,6 +200,32 @@ describe('Factorization Module', () => {
       const prime = 101n
       expect(ellipticCurveMethod(prime)).toBe(prime)
     })
+    
+    test('should respect custom memory limits', () => {
+      // Test with a small memory limit
+      const factor = ellipticCurveMethod(1001n, { maxMemory: 1 })
+      expect(1001n % factor).toBe(0n)
+      
+      // Test with a very large memory limit
+      const factor2 = ellipticCurveMethod(1001n, { maxMemory: 1000 })
+      expect(1001n % factor2).toBe(0n)
+    })
+    
+    test('should respect configurable b1 and b2 parameters', () => {
+      // Test with custom B1 and B2 bounds
+      const factor = ellipticCurveMethod(1001n, { b1: 1000, b2: 5000 })
+      expect(1001n % factor).toBe(0n)
+      
+      // Test with B2 disabled (set to 0)
+      const factor2 = ellipticCurveMethod(1001n, { b1: 1000, b2: 0 })
+      expect(1001n % factor2).toBe(0n)
+    })
+    
+    test('should work with a large number of curves', () => {
+      // Test with a high curve count
+      const factor = ellipticCurveMethod(1001n, { curves: 50 })
+      expect(1001n % factor).toBe(0n)
+    })
   })
   
   describe('factorizePollardsRho', () => {
