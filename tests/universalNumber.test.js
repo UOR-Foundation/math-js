@@ -37,10 +37,17 @@ describe('UniversalNumber', () => {
       expect(num.toBigInt()).toBe(-42n)
     })
 
-    test('should reject zero', () => {
-      expect(() => new UniversalNumber(0)).toThrow(PrimeMathError)
-      expect(() => new UniversalNumber('0')).toThrow(PrimeMathError)
-      expect(() => new UniversalNumber(0n)).toThrow(PrimeMathError)
+    test('should support zero', () => {
+      const zero = new UniversalNumber(0)
+      expect(zero.isZero()).toBe(true)
+      expect(zero.toBigInt()).toBe(0n)
+      expect(zero.toString()).toBe('0')
+      
+      const zero2 = new UniversalNumber('0')
+      expect(zero2.isZero()).toBe(true)
+      
+      const zero3 = new UniversalNumber(0n)
+      expect(zero3.isZero()).toBe(true)
     })
 
     test('fromNumber static factory method', () => {

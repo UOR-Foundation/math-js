@@ -14,6 +14,7 @@ const Conversion = require('./Conversion')
  * @typedef {Object} Coordinates
  * @property {Map<BigInt, BigInt>} factorization - Map where keys are prime factors and values are their exponents
  * @property {boolean} isNegative - Whether the number is negative
+ * @property {boolean} [isZero] - Whether the number is zero
  */
 
 /**
@@ -47,16 +48,21 @@ class UniversalNumber {
     this._factorization = new Map()
     /** @private */
     this._isNegative = false
+    /** @private */
+    this._isZero = false
 
     if (value === null || value === undefined) {
       throw new PrimeMathError('Value cannot be null or undefined')
     }
 
-    // Handle special case for zero - reject according to lib-spec.md line 102
+    // Handle special case for zero
     if ((typeof value === 'number' && value === 0) ||
         (typeof value === 'string' && /^[+-]?0+$/.test(value)) ||
         (typeof value === 'bigint' && value === 0n)) {
-      throw new PrimeMathError('Universal coordinates are only defined for non-zero integers')
+      this._isZero = true
+      this._factorization = new Map()  // Zero has an empty factorization like 1, but is flagged as zero
+      this._isNegative = false         // Zero is neither positive nor negative in this context
+      return
     }
 
     // Special case for 1 - empty factorization per lib-spec.md line 101
@@ -72,6 +78,7 @@ class UniversalNumber {
     if (value instanceof UniversalNumber) {
       this._factorization = new Map(value._factorization)
       this._isNegative = value._isNegative
+      this._isZero = value._isZero
       return
     }
 
@@ -89,10 +96,20 @@ class UniversalNumber {
       if (!(value.factorization instanceof Map)) {
         throw new PrimeMathError('Factorization must be a Map of prime factors')
       }
+      
+      // Special case for explicit zero flag
+      if (value.isZero === true) {
+        this._isZero = true
+        this._factorization = new Map()
+        this._isNegative = false
+        return
+      }
+      
       this._validateFactorization(value.factorization)
       this._factorization = new Map(value.factorization)
       this._normalizeFactorization()
       this._isNegative = !!value.isNegative
+      this._isZero = false
       return
     }
 
@@ -247,13 +264,8 @@ class UniversalNumber {
    * 
    * @param {BigInt} n - The BigInt to convert
    * @returns {UniversalNumber} A new UniversalNumber instance
-   * @throws {PrimeMathError} If n is zero
    */
   static fromBigInt(n) {
-    if (n === 0n) {
-      throw new PrimeMathError('Universal coordinates are only defined for non-zero integers')
-    }
-    
     return new UniversalNumber(n)
   }
 
@@ -274,10 +286,16 @@ class UniversalNumber {
       throw new PrimeMathError(`Invalid base: ${base} (must be 2-36)`)
     }
     
+    // Special case for zero
+    if (/^[+-]?0+$/.test(str)) {
+      return new UniversalNumber(0)
+    }
+    
     const result = Conversion.fromString(str, base)
     return new UniversalNumber({
       factorization: result.factorization,
-      isNegative: result.isNegative
+      isNegative: result.isNegative,
+      isZero: result.isZero || false
     })
   }
 
@@ -319,10 +337,15 @@ class UniversalNumber {
    * @returns {UniversalNumber} A new UniversalNumber instance
    */
   static factorize(n, options = {}) {
+    // Special case for zero
     if ((typeof n === 'number' && n === 0) ||
         (typeof n === 'string' && /^[+-]?0+$/.test(n)) ||
         (typeof n === 'bigint' && n === 0n)) {
-      throw new PrimeMathError('Universal coordinates are only defined for non-zero integers')
+      return new UniversalNumber({
+        factorization: new Map(),
+        isNegative: false,
+        isZero: true
+      })
     }
     
     const isNegative = (typeof n === 'number' && n < 0) ||
@@ -337,7 +360,8 @@ class UniversalNumber {
     
     return new UniversalNumber({
       factorization,
-      isNegative
+      isNegative,
+      isZero: false
     })
   }
 
@@ -383,6 +407,11 @@ class UniversalNumber {
    * @returns {BigInt} The BigInt representation of the number
    */
   toBigInt() {
+    // Special case for zero
+    if (this._isZero) {
+      return 0n
+    }
+    
     // Special case for 1 (empty factorization)
     if (this._factorization.size === 0) {
       return this._isNegative ? -1n : 1n
@@ -421,6 +450,11 @@ class UniversalNumber {
       throw new PrimeMathError(`Invalid base: ${base} (must be 2-36)`)
     }
     
+    // Special case for zero
+    if (this._isZero) {
+      return '0'
+    }
+    
     // Special case for 1 (empty factorization)
     if (this._factorization.size === 0) {
       return this._isNegative ? '-1' : '1'
@@ -443,6 +477,11 @@ class UniversalNumber {
       throw new PrimeMathError(`Invalid base: ${base} (must be 2-36)`)
     }
     
+    // Special case for zero
+    if (this._isZero) {
+      return [0]
+    }
+    
     const result = Conversion.getDigitsFromValue(
       { 
         factorization: this._factorization, 
@@ -461,8 +500,17 @@ class UniversalNumber {
    * @returns {UniversalNumber} A new UniversalNumber representing the sum
    */
   add(other) {
+    // Special case for zero (more generalized handling)
+    if (this._isZero) {
+      // If this is zero, return other
+      return other instanceof UniversalNumber ? 
+        new UniversalNumber(other) : 
+        new UniversalNumber(other)
+    }
+    
     // Special case for adding 0
-    if ((other === 0 || other === 0n || other === '0')) {
+    if ((other === 0 || other === 0n || other === '0') || 
+        (other instanceof UniversalNumber && other._isZero)) {
       return new UniversalNumber(this)
     }
     
@@ -498,8 +546,23 @@ class UniversalNumber {
    * @returns {UniversalNumber} A new UniversalNumber representing the difference
    */
   subtract(other) {
+    // Special case for this being zero
+    if (this._isZero) {
+      // If both this and other are zero, return zero
+      if ((other === 0 || other === 0n || other === '0') || 
+          (other instanceof UniversalNumber && other._isZero)) {
+        return new UniversalNumber(0)
+      }
+      
+      const otherNum = other instanceof UniversalNumber ? 
+        other : 
+        new UniversalNumber(other)
+      return otherNum.negate()
+    }
+    
     // Special case for subtracting 0
-    if ((other === 0 || other === 0n || other === '0')) {
+    if ((other === 0 || other === 0n || other === '0') || 
+        (other instanceof UniversalNumber && other._isZero)) {
       return new UniversalNumber(this)
     }
     
@@ -538,9 +601,15 @@ class UniversalNumber {
    * @returns {UniversalNumber} A new UniversalNumber representing the product
    */
   multiply(other) {
+    // Special case for zero
+    if (this._isZero) {
+      return new UniversalNumber(0)
+    }
+    
     // Special case for multiplying by 0
-    if ((other === 0 || other === 0n || other === '0')) {
-      throw new PrimeMathError('Universal coordinates are only defined for non-zero integers')
+    if ((other === 0 || other === 0n || other === '0') || 
+        (other instanceof UniversalNumber && other._isZero)) {
+      return new UniversalNumber(0)
     }
     
     // Special case for multiplying by 1
@@ -554,7 +623,7 @@ class UniversalNumber {
     }
     
     // Special case for multiplying 1 (empty factorization)
-    if (this._factorization.size === 0) {
+    if (this._factorization.size === 0 && !this._isZero) {
       const result = other instanceof UniversalNumber ? 
         new UniversalNumber(other) : 
         new UniversalNumber(other)
@@ -597,8 +666,14 @@ class UniversalNumber {
    */
   divide(other) {
     // Special case for dividing by 0
-    if ((other === 0 || other === 0n || other === '0')) {
+    if ((other === 0 || other === 0n || other === '0') || 
+        (other instanceof UniversalNumber && other._isZero)) {
       throw new PrimeMathError('Division by zero is not allowed')
+    }
+    
+    // Special case for zero divided by anything non-zero
+    if (this._isZero) {
+      return new UniversalNumber(0)
     }
     
     // Special case for dividing by 1
@@ -612,7 +687,7 @@ class UniversalNumber {
     }
     
     // Special case for 1 (empty factorization) divided by something
-    if (this._factorization.size === 0) {
+    if (this._factorization.size === 0 && !this._isZero) {
       // 1 divided by anything other than 1 or -1 can't be exact in natural numbers
       const otherNum = other instanceof UniversalNumber ? 
         other : 
@@ -676,6 +751,12 @@ class UniversalNumber {
       throw new PrimeMathError('Negative exponents are not supported in the natural numbers')
     }
     
+    // Special case for zero
+    if (this._isZero) {
+      // 0^0 = 1 (mathematical convention), 0^n = 0 for n > 0
+      return exp === 0n ? new UniversalNumber(1n) : new UniversalNumber(0n)
+    }
+    
     if (exp === 0n) {
       // Any number raised to the power of 0 is 1
       return new UniversalNumber(1n)
@@ -687,7 +768,7 @@ class UniversalNumber {
     }
     
     // Special case for 1 (empty factorization)
-    if (this._factorization.size === 0) {
+    if (this._factorization.size === 0 && !this._isZero) {
       return new UniversalNumber(this)
     }
     
@@ -714,23 +795,32 @@ class UniversalNumber {
    * 
    * @param {number|string|BigInt|UniversalNumber} other - The other number
    * @returns {UniversalNumber} A new UniversalNumber representing the GCD
-   * @throws {PrimeMathError} If either input is zero
+   * @throws {PrimeMathError} If both inputs are zero
    */
   gcd(other) {
-    // Check for zero inputs
-    if ((other === 0 || other === 0n || other === '0')) {
-      throw new PrimeMathError('GCD with zero is undefined in the Prime Framework')
-    }
-    
-    // Special case for 1 (empty factorization)
-    if (this._factorization.size === 0) {
-      return new UniversalNumber(1)
-    }
-    
-    // Convert other to UniversalNumber if it's not already
+    // Get UniversalNumber version of other
     const otherNum = other instanceof UniversalNumber ? 
       other : 
       new UniversalNumber(other)
+      
+    // Handle zero inputs
+    if (this._isZero && otherNum._isZero) {
+      throw new PrimeMathError('GCD of zero with zero is undefined')
+    }
+    
+    // Per mathematical definition: gcd(0, n) = gcd(n, 0) = |n|
+    if (this._isZero) {
+      return otherNum.abs()
+    }
+    
+    if (otherNum._isZero) {
+      return this.abs()
+    }
+    
+    // Special case for 1 (empty factorization)
+    if (this._factorization.size === 0 && !this._isZero) {
+      return new UniversalNumber(1)
+    }
     
     // Special case: if other is 1, GCD is 1
     if (otherNum._factorization.size === 0) {
@@ -775,24 +865,20 @@ class UniversalNumber {
    * @throws {PrimeMathError} If either input is zero
    */
   lcm(other) {
-    // Check for zero inputs
-    if ((other === 0 || other === 0n || other === '0')) {
-      throw new PrimeMathError('LCM with zero is undefined in the Prime Framework')
-    }
-    
-    // Special case for 1 (empty factorization)
-    if (this._factorization.size === 0) {
-      const otherNum = other instanceof UniversalNumber ? 
-        other : 
-        new UniversalNumber(other)
-        
-      return new UniversalNumber(otherNum.abs())
-    }
-    
-    // Convert other to UniversalNumber if it's not already
+    // Get other as UniversalNumber
     const otherNum = other instanceof UniversalNumber ? 
       other : 
       new UniversalNumber(other)
+    
+    // Check for zero inputs (lcm(0, n) = lcm(n, 0) = 0 by mathematical convention)
+    if (this._isZero || otherNum._isZero) {
+      return new UniversalNumber(0)
+    }
+    
+    // Special case for 1 (empty factorization)
+    if (this._factorization.size === 0 && !this._isZero) {
+      return new UniversalNumber(otherNum.abs())
+    }
     
     // Special case: if other is 1, LCM is this number
     if (otherNum._factorization.size === 0) {
@@ -1191,7 +1277,16 @@ class UniversalNumber {
    * @returns {boolean} True if this number is 1, false otherwise
    */
   isOne() {
-    return this._factorization.size === 0 && !this._isNegative
+    return this._factorization.size === 0 && !this._isNegative && !this._isZero
+  }
+  
+  /**
+   * Check if this UniversalNumber is 0
+   * 
+   * @returns {boolean} True if this number is 0, false otherwise
+   */
+  isZero() {
+    return this._isZero
   }
 
   /**

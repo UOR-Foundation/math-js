@@ -1053,12 +1053,11 @@ function fromNumber(n) {
  * 
  * @param {BigInt} b - The BigInt value to convert
  * @returns {Map<BigInt, BigInt>} The prime factorization (universal coordinates)
- * @throws {PrimeMathError} If the value is zero
  */
 function fromBigInt(b) {
-  // Handle negative numbers by returning a sign flag with the factorization
+  // Special case for zero
   if (b === 0n) {
-    throw new PrimeMathError('Universal coordinates are only defined for non-zero integers')
+    return new Map()  // Zero is represented by an empty factorization (but will be flagged as zero in UniversalNumber)
   }
   
   // Use absolute value for factorization
@@ -1098,17 +1097,23 @@ function fromString(str, base = 10) {
       }, 0n)
     }
     
+    // Special case for zero
     if (bigIntValue === 0n) {
-      throw new PrimeMathError('Universal coordinates are only defined for non-zero integers')
+      return {
+        factorization: new Map(),
+        isNegative: false,
+        isZero: true
+      }
     }
     
     // Factorize to get universal coordinates
     const factorization = factorizeOptimal(bigIntValue)
     
-    // Return factorization with sign flag
+    // Return factorization with sign flag and isZero flag (always false here since we handle zero separately)
     return {
       factorization,
-      isNegative
+      isNegative,
+      isZero: false
     }
   } catch (error) {
     if (error instanceof PrimeMathError) {
