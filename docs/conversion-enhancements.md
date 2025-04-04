@@ -492,3 +492,67 @@ streamConvertBase(
 );
 console.log(collectedResults); // ["2a", "7b", "ff"]
 ```
+
+## Extended Base Support
+
+The library now supports configurable numeric base conversion beyond the standard JavaScript limit of base-36. This enhancement allows for representation of numbers in higher bases, which can be useful for various applications including:
+
+1. More compact string representation of large numbers
+2. Custom encoding schemes requiring higher bases
+3. Specialized algorithms optimized for specific base representations
+
+### Usage
+
+By default, the library maintains compatibility with JavaScript's native behavior, allowing bases between 2 and 36. To extend this range:
+
+```javascript
+const { UniversalNumber, configure } = require('math-js')
+
+// Configure library for extended base support
+configure({
+  conversion: {
+    maxBase: 62  // Supports bases up to 62 (0-9, a-z, A-Z)
+  }
+})
+
+// Create a universal number
+const number = new UniversalNumber(12345)
+
+// Convert to higher bases
+console.log(number.toString(50))  // Base-50 representation
+console.log(number.toString(62))  // Base-62 representation
+
+// Parse strings in higher bases
+const fromHighBase = new UniversalNumber('Za', 62)  // 'Za' in base-62
+console.log(fromHighBase.toNumber())  // Outputs the decimal value
+```
+
+### Character Set
+
+For bases 2-36, the standard digit set `0-9a-z` is used, maintaining compatibility with JavaScript's native `toString()` and `parseInt()` behavior.
+
+For bases 37-62, the digit set is extended with uppercase letters `A-Z`. The complete digit set for base-62 is:
+
+```
+0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+```
+
+### Configuration Options
+
+The following configuration options control base conversion behavior:
+
+```javascript
+configure({
+  conversion: {
+    minBase: 2,     // Minimum allowed base (default: 2)
+    maxBase: 62,    // Maximum allowed base (default: 36)
+    defaultBase: 10 // Default base when not specified (default: 10)
+  }
+})
+```
+
+### Limitations
+
+- The current implementation supports bases up to 62 using alphanumeric characters
+- For bases beyond 62, a custom character set would need to be defined
+- All base conversions support arbitrarily large numbers through BigInt

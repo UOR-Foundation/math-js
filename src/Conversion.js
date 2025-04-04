@@ -9,6 +9,7 @@
 
 const { PrimeMathError, toBigInt } = require('./Utils')
 const { factorizeOptimal, fromPrimeFactors } = require('./Factorization')
+const { config } = require('./config')
 
 /**
  * Helper function to safely extract error message
@@ -20,6 +21,32 @@ function getErrorMessage(error) {
   return error instanceof Error ? error.message : String(error)
 }
 
+/**
+ * Get the digit character set for a specific base
+ * Supports extended bases beyond the standard 36
+ * 
+ * @param {number} base - The base for which to get the character set
+ * @returns {string} The character set for the given base
+ */
+function getDigitCharset(base) {
+  // Standard digit set (0-9, a-z) for bases up to 36
+  const standardDigits = '0123456789abcdefghijklmnopqrstuvwxyz'
+  
+  // For bases <= 36, use the standard digits
+  if (base <= 36) {
+    return standardDigits.slice(0, base)
+  }
+  
+  // For bases > 36, extend with uppercase letters
+  if (base <= 62) {
+    return standardDigits + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.slice(0, base - 36)
+  }
+  
+  // For even larger bases (beyond 62), we could add more symbols
+  // This would require custom configuration for what symbols to use
+  throw new PrimeMathError(`Base ${base} is supported but needs a custom character set configuration`)
+}
+
 // Import UniversalNumber - strict dependency according to Prime Framework
 const UniversalNumber = require('./UniversalNumber')
 
@@ -27,7 +54,7 @@ const UniversalNumber = require('./UniversalNumber')
  * Validates if a string is a valid representation of a number in the given base
  * 
  * @param {string} str - The string to validate
- * @param {number} base - The base of the number representation (2-36)
+ * @param {number} base - The base of the number representation (configurable, default: 2-36)
  * @returns {boolean} True if the string is a valid representation
  */
 function validateStringForBase(str, base) {
@@ -45,7 +72,7 @@ function validateStringForBase(str, base) {
   }
 
   // Get valid digits for the base
-  const validChars = '0123456789abcdefghijklmnopqrstuvwxyz'.slice(0, base)
+  const validChars = getDigitCharset(base)
   
   // Check each character
   for (let i = startIndex; i < str.length; i++) {
@@ -148,7 +175,7 @@ function convertBigIntToBase(value, base) {
     return '0'
   }
   
-  const digits = '0123456789abcdefghijklmnopqrstuvwxyz'
+  const digits = getDigitCharset(base)
   let result = ''
   let remaining = value
   
@@ -172,8 +199,9 @@ function convertBigIntToBase(value, base) {
  */
 function getDigits(value, base = 10, leastSignificantFirst = false) {
   // Validate base
-  if (!Number.isInteger(base) || base < 2 || base > 36) {
-    throw new PrimeMathError(`Invalid base: ${base} (must be 2-36)`)
+  const { minBase, maxBase } = config.conversion
+  if (!Number.isInteger(base) || base < minBase || base > maxBase) {
+    throw new PrimeMathError(`Invalid base: ${base} (must be ${minBase}-${maxBase})`)
   }
   
   try {
@@ -1070,7 +1098,7 @@ function fromBigInt(b) {
  * Parse a string representing a number in a given base and convert to universal coordinates
  * 
  * @param {string} str - The string representing a number
- * @param {number} [base=10] - The base of the input string (2-36)
+ * @param {number} [base=10] - The base of the input string (configurable, default: 2-36)
  * @returns {{factorization: Map<BigInt, BigInt>, isNegative: boolean}} The prime factorization (universal coordinates) and sign flag
  * @throws {PrimeMathError} If the string cannot be parsed or is zero
  */
@@ -1089,10 +1117,23 @@ function fromString(str, base = 10) {
     
     if (base === 10) {
       bigIntValue = BigInt(absStr)
-    } else {
-      // Convert digit by digit for other bases
+    } else if (base <= 36) {
+      // For bases <= 36, we can use JavaScript's built-in parseInt
       bigIntValue = [...absStr].reduce((acc, digit) => {
         const digitValue = parseInt(digit, base)
+        return acc * BigInt(base) + BigInt(digitValue)
+      }, 0n)
+    } else {
+      // For bases > 36, we need to use our custom character set
+      const charset = getDigitCharset(base)
+      
+      // Convert digit by digit for higher bases
+      bigIntValue = [...absStr].reduce((acc, char) => {
+        // Find the position of the character in our charset
+        const digitValue = charset.indexOf(char.toLowerCase())
+        if (digitValue === -1) {
+          throw new PrimeMathError(`Invalid character '${char}' for base-${base}`)
+        }
         return acc * BigInt(base) + BigInt(digitValue)
       }, 0n)
     }
@@ -1141,8 +1182,9 @@ function getDigitsFromValue(value, base = 10, options = {}) {
   const { leastSignificantFirst = false, includeSign = false } = options
   
   // Validate base
-  if (!Number.isInteger(base) || base < 2 || base > 36) {
-    throw new PrimeMathError(`Invalid base: ${base} (must be 2-36)`)
+  const { minBase, maxBase } = config.conversion
+  if (!Number.isInteger(base) || base < minBase || base > maxBase) {
+    throw new PrimeMathError(`Invalid base: ${base} (must be ${minBase}-${maxBase})`)
   }
   
   let bigIntValue
@@ -1587,8 +1629,9 @@ function factorizationToBaseString(factorization, base = 10) {
   }
   
   // Validate base
-  if (!Number.isInteger(base) || base < 2 || base > 36) {
-    throw new PrimeMathError(`Invalid base: ${base} (must be 2-36)`)
+  const { minBase, maxBase } = config.conversion
+  if (!Number.isInteger(base) || base < minBase || base > maxBase) {
+    throw new PrimeMathError(`Invalid base: ${base} (must be ${minBase}-${maxBase})`)
   }
   
   // Convert to BigInt first
@@ -2567,8 +2610,11 @@ const Conversion = {
   _validateBase(options = {}) {
     const { base = 10, validate = true } = options
     
-    if (validate && (!Number.isInteger(base) || base < 2 || base > 36)) {
-      throw new PrimeMathError(`Invalid base: ${base} (must be 2-36)`)
+    if (validate) {
+      const { minBase, maxBase } = config.conversion
+      if (!Number.isInteger(base) || base < minBase || base > maxBase) {
+        throw new PrimeMathError(`Invalid base: ${base} (must be ${minBase}-${maxBase})`)
+      }
     }
     
     return base

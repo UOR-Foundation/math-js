@@ -216,7 +216,19 @@ const defaultConfig = {
      * Whether to cache conversion results
      * @type {boolean}
      */
-    cacheResults: true
+    cacheResults: true,
+    
+    /**
+     * Minimum allowable base for conversions
+     * @type {number}
+     */
+    minBase: 2,
+    
+    /**
+     * Maximum allowable base for conversions
+     * @type {number}
+     */
+    maxBase: 36
   },
   
   /**
