@@ -149,7 +149,28 @@ math.configure({
   primalityTesting: {
     millerRabinRounds: 40,           // Number of Miller-Rabin rounds
     deterministicTestLimit: 20,       // Max digits for deterministic primality testing
-    useTrialDivision: true           // Whether to use trial division before advanced tests
+    useTrialDivision: true,          // Whether to use trial division before advanced tests
+    verificationThreshold: 1000000    // Threshold for using Miller-Rabin vs simple primality test
+  }
+});
+```
+
+#### Primality Verification Threshold
+
+The `verificationThreshold` setting controls when to switch between simple primality testing and more advanced methods like Miller-Rabin:
+
+- For numbers **below** the threshold, a faster but still accurate primality test is used
+- For numbers **above** the threshold, the more rigorous Miller-Rabin test with configurable rounds is used
+
+Adjust this threshold based on your performance needs:
+
+```javascript
+math.configure({
+  primalityTesting: {
+    // Use faster primality testing for larger numbers (if you're confident in their primality)
+    verificationThreshold: 10000000,
+    // Increase Miller-Rabin rounds for more confidence when using the advanced test
+    millerRabinRounds: 60
   }
 });
 ```

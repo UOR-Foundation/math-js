@@ -97,7 +97,8 @@ const customProfile = {
     }
   },
   primalityTesting: {
-    millerRabinRounds: 30
+    millerRabinRounds: 30,
+    verificationThreshold: 2000000  // Use Miller-Rabin for numbers > 2 million
   }
 };
 
@@ -114,5 +115,12 @@ console.log('Optimized trial division threshold:', factConfig.thresholds.optimiz
 console.log('Pollard\'s Rho threshold:', factConfig.thresholds.pollardRho, 'digits');
 console.log('Elliptic Curve Method threshold:', factConfig.thresholds.ecm, 'digits');
 console.log('Quadratic Sieve threshold:', factConfig.thresholds.quadraticSieve, 'digits');
+
+// Show primality testing configuration
+console.log('\n9. Primality testing configuration:');
+const primalityConfig = math.getConfig().primalityTesting;
+console.log('Miller-Rabin rounds:', primalityConfig.millerRabinRounds);
+console.log('Verification threshold:', primalityConfig.verificationThreshold);
+console.log('Deterministic test limit:', primalityConfig.deterministicTestLimit, 'digits');
 
 console.log('\nConfiguration example completed.');
