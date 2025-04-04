@@ -292,100 +292,255 @@ declare module 'math-js' {
   }
   
   /**
+   * Cache configuration
+   */
+  export interface CacheConfig {
+    /**
+     * Whether to enable caching
+     */
+    enabled?: boolean;
+    
+    /**
+     * Maximum cache size in bytes
+     */
+    maxSize?: number;
+    
+    /**
+     * Maximum number of entries in the prime number cache
+     */
+    maxPrimeCacheSize?: number;
+    
+    /**
+     * Maximum number of entries in the factorization cache
+     */
+    maxFactorizationCacheSize?: number;
+    
+    /**
+     * Cache eviction policy
+     */
+    evictionPolicy?: 'lru' | 'fifo' | 'random';
+    
+    /**
+     * Whether to use persistent caching
+     */
+    persistentCache?: boolean;
+    
+    /**
+     * Time-to-live for cache entries in milliseconds (0 = no expiry)
+     */
+    ttl?: number;
+  }
+  
+  /**
+   * Factorization configuration
+   */
+  export interface FactorizationConfig {
+    /**
+     * Whether to compute factorization lazily
+     */
+    lazy?: boolean;
+    
+    /**
+     * Maximum size (in digits) for which to attempt complete factorization
+     */
+    completeSizeLimit?: number;
+    
+    /**
+     * Algorithm to use for factorization
+     */
+    algorithm?: 'auto' | 'trial' | 'pollard' | 'quadratic';
+    
+    /**
+     * Maximum time (in milliseconds) to spend on a factorization attempt
+     */
+    timeLimit?: number;
+    
+    /**
+     * Memory limit (in MB) for factorization operations
+     */
+    memoryLimit?: number;
+    
+    /**
+     * Maximum number of iterations for probabilistic factorization algorithms
+     */
+    maxIterations?: number;
+  }
+  
+  /**
+   * Async operation configuration
+   */
+  export interface AsyncConfig {
+    /**
+     * Whether to use WebWorkers when available
+     */
+    useWorkers?: boolean;
+    
+    /**
+     * Default timeout for async operations in milliseconds
+     */
+    defaultTimeout?: number;
+    
+    /**
+     * Whether to report progress events for long-running operations
+     */
+    reportProgress?: boolean;
+    
+    /**
+     * Maximum number of concurrent workers for parallel operations
+     */
+    maxWorkers?: number;
+  }
+  
+  /**
+   * Memory usage configuration
+   */
+  export interface MemoryConfig {
+    /**
+     * Whether to optimize memory usage at the expense of performance
+     */
+    optimizeMemory?: boolean;
+    
+    /**
+     * Whether to use compact representations for storage
+     */
+    useCompactRepresentation?: boolean;
+    
+    /**
+     * Maximum memory usage limit in MB (0 = no explicit limit)
+     */
+    maxMemoryUsage?: number;
+    
+    /**
+     * Garbage collection strategy
+     */
+    gcStrategy?: 'auto' | 'aggressive' | 'conservative';
+  }
+  
+  /**
+   * Primality testing configuration
+   */
+  export interface PrimalityTestingConfig {
+    /**
+     * Number of Miller-Rabin rounds for primality testing
+     */
+    millerRabinRounds?: number;
+    
+    /**
+     * Maximum size (in digits) for deterministic primality testing
+     */
+    deterministicTestLimit?: number;
+    
+    /**
+     * Whether to use trial division before advanced primality tests
+     */
+    useTrialDivision?: boolean;
+  }
+  
+  /**
+   * Conversion configuration
+   */
+  export interface ConversionConfig {
+    /**
+     * Maximum size (in digits) for direct conversion without chunking
+     */
+    directConversionLimit?: number;
+    
+    /**
+     * Default base for number conversion operations
+     */
+    defaultBase?: number;
+    
+    /**
+     * Whether to cache conversion results
+     */
+    cacheResults?: boolean;
+  }
+  
+  /**
+   * Error handling configuration
+   */
+  export interface ErrorHandlingConfig {
+    /**
+     * Whether to include stack traces in errors
+     */
+    includeStackTrace?: boolean;
+    
+    /**
+     * Level of detail in error messages
+     */
+    verbosity?: 'minimal' | 'standard' | 'verbose';
+    
+    /**
+     * Whether to throw on potentially recoverable errors
+     */
+    strictMode?: boolean;
+  }
+  
+  /**
    * Library configuration options
    */
-  export interface Config {
+  export interface LibraryConfig {
     /**
      * Performance profile for the library
      */
-    performanceProfile: 'balanced' | 'speed' | 'precision';
+    performanceProfile?: 'balanced' | 'speed' | 'precision';
     
     /**
      * Cache configuration
      */
-    cache: {
-      /**
-       * Whether to enable caching
-       */
-      enabled: boolean;
-      
-      /**
-       * Maximum cache size in bytes
-       */
-      maxSize: number;
-      
-      /**
-       * Cache eviction policy
-       */
-      evictionPolicy: 'lru' | 'fifo' | 'random';
-    };
+    cache?: CacheConfig;
     
     /**
      * Factorization configuration
      */
-    factorization: {
-      /**
-       * Whether to compute factorization lazily
-       */
-      lazy: boolean;
-      
-      /**
-       * Maximum size for complete factorization
-       */
-      completeSizeLimit: number;
-      
-      /**
-       * Algorithm to use for factorization
-       */
-      algorithm: 'auto' | 'trial' | 'pollard' | 'quadratic';
-    };
+    factorization?: FactorizationConfig;
     
     /**
      * Async operation configuration
      */
-    async: {
-      /**
-       * Whether to use WebWorkers when available
-       */
-      useWorkers: boolean;
-      
-      /**
-       * Default timeout for async operations
-       */
-      defaultTimeout: number;
-      
-      /**
-       * Whether to report progress events
-       */
-      reportProgress: boolean;
-    };
+    async?: AsyncConfig;
     
     /**
      * Memory usage configuration
      */
-    memory: {
-      /**
-       * Whether to optimize for memory usage
-       */
-      optimizeMemory: boolean;
-      
-      /**
-       * Whether to use compact representations
-       */
-      useCompactRepresentation: boolean;
-    };
+    memory?: MemoryConfig;
+    
+    /**
+     * Primality testing configuration
+     */
+    primalityTesting?: PrimalityTestingConfig;
+    
+    /**
+     * Conversion configuration
+     */
+    conversion?: ConversionConfig;
+    
+    /**
+     * Error handling configuration
+     */
+    errorHandling?: ErrorHandlingConfig;
   }
   
   /**
    * Update library configuration
    * @param options - Configuration options to update
    */
-  export function configure(options: Partial<Config>): Config;
+  export function configure(options: Partial<LibraryConfig>): LibraryConfig;
+  
+  /**
+   * Reset configuration to default values
+   */
+  export function resetConfig(): LibraryConfig;
+  
+  /**
+   * Get the current configuration
+   */
+  export function getConfig(): LibraryConfig;
   
   /**
    * Current library configuration
    */
-  export const config: Config;
+  export const config: LibraryConfig;
   
   /**
    * Stream interface for processing sequences of numbers

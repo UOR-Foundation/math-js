@@ -4,6 +4,9 @@
  * @module Utils
  */
 
+// Import global config
+const { config } = require('./config')
+
 /**
  * Custom error class for Prime Math-related errors
  * @class PrimeMathError
@@ -17,6 +20,11 @@ class PrimeMathError extends Error {
   constructor(message) {
     super(message)
     this.name = 'PrimeMathError'
+    
+    // Add stack trace based on configuration
+    if (config.errorHandling && !config.errorHandling.includeStackTrace) {
+      this.stack = undefined
+    }
   }
 }
 
@@ -69,9 +77,11 @@ const _primeCache = {
   largestCheckedNumber: 997n,
   
   /**
-   * Maximum size of primality map before pruning
+   * Get the maximum size of primality map before pruning from global config
    */
-  MAX_CACHE_SIZE: 100000,
+  get MAX_CACHE_SIZE() {
+    return config.cache.maxPrimeCacheSize
+  },
   
   /**
    * Initialize the prime cache with the known primes
@@ -299,7 +309,11 @@ function toBigInt(value) {
  * @param {number} k - The number of rounds (higher means more accuracy for probabilistic testing)
  * @returns {boolean} True if n is probably prime, false if n is definitely composite
  */
-function _millerRabinTest(n, k = 40) {
+function _millerRabinTest(n, k = null) {
+  // Use configured number of rounds if not specified explicitly
+  if (k === null) {
+    k = config.primalityTesting.millerRabinRounds
+  }
   // Handle small numbers and ensure n > 0
   if (n <= 1n) return false
   if (n <= 3n) return true
@@ -892,7 +906,13 @@ const primeCache = {
       throw new PrimeMathError('Cache size must be a positive number')
     }
     
-    _primeCache.MAX_CACHE_SIZE = size
+    // Update global configuration
+    const { configure } = require('./config')
+    configure({
+      cache: {
+        maxPrimeCacheSize: size
+      }
+    })
     
     // Prune if needed
     if (_primeCache.primalityMap.size > _primeCache.MAX_CACHE_SIZE) {

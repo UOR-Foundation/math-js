@@ -46,6 +46,29 @@ const decimalString = product.toString();
 - **Base-Independent**: Work with numbers in their intrinsic form, not tied to any specific base
 - **Seamless Conversions**: Convert between universal representation and standard formats
 - **Number Theory Operations**: Access to prime factorization, GCD, LCM, and primality testing
+- **Global Configuration**: Centralized system to control memory usage, computation limits, and performance trade-offs
+
+## Configuration
+
+The library includes a comprehensive configuration system that allows you to adjust memory usage, computation limits, and performance trade-offs:
+
+```javascript
+const math = require('uor-math-js');
+
+// Configure the library according to your needs
+math.configure({
+  performanceProfile: 'speed',  // Options: 'balanced', 'speed', or 'precision'
+  cache: {
+    maxPrimeCacheSize: 50000,
+    maxFactorizationCacheSize: 1000
+  },
+  factorization: {
+    completeSizeLimit: 150  // Maximum digit size for complete factorization
+  }
+});
+```
+
+For more details, see [Configuration Guide](docs/configuration.md).
 
 ## Documentation
 

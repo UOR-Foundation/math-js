@@ -10,110 +10,11 @@ const Factorization = require('./Factorization')
 const Conversion = require('./Conversion')
 const Utils = require('./Utils')
 
-/**
- * Library configuration system for global settings and behavior
- * @type {Object}
- */
-const config = {
-  /**
-   * Performance profile for the library
-   * - "balanced": Default profile balancing speed and precision
-   * - "speed": Optimize for speed with potential precision trade-offs
-   * - "precision": Maximum precision regardless of performance impact
-   * @type {string}
-   */
-  performanceProfile: 'balanced',
-  
-  /**
-   * Controls caching behavior for computational results
-   * @type {Object}
-   */
-  cache: {
-    /**
-     * Whether to enable caching of computational results
-     * @type {boolean}
-     */
-    enabled: true,
-    
-    /**
-     * Maximum size of the cache in bytes (approximate)
-     * @type {number}
-     */
-    maxSize: 1024 * 1024 * 10, // 10MB default
-    
-    /**
-     * Eviction policy for cache ("lru", "fifo", "random")
-     * @type {string}
-     */
-    evictionPolicy: 'lru'
-  },
-  
-  /**
-   * Controls factorization behavior
-   * @type {Object}
-   */
-  factorization: {
-    /**
-     * Whether to compute factorization lazily
-     * @type {boolean}
-     */
-    lazy: true,
-    
-    /**
-     * Maximum size (in digits) for which to attempt complete factorization
-     * @type {number}
-     */
-    completeSizeLimit: 100,
-    
-    /**
-     * Algorithm to use for factorization ("auto", "trial", "pollard", "quadratic", etc.)
-     * @type {string}
-     */
-    algorithm: 'auto'
-  },
-  
-  /**
-   * Controls behavior of asynchronous operations
-   * @type {Object}
-   */
-  async: {
-    /**
-     * Whether to use WebWorkers when available
-     * @type {boolean}
-     */
-    useWorkers: true,
-    
-    /**
-     * Default timeout for async operations in milliseconds (0 = no timeout)
-     * @type {number}
-     */
-    defaultTimeout: 30000,
-    
-    /**
-     * Whether to report progress events for long-running operations
-     * @type {boolean}
-     */
-    reportProgress: true
-  },
-  
-  /**
-   * Controls memory usage and optimization
-   * @type {Object}
-   */
-  memory: {
-    /**
-     * Whether to optimize memory usage at the expense of performance
-     * @type {boolean}
-     */
-    optimizeMemory: false,
-    
-    /**
-     * Whether to use compact representations for storage
-     * @type {boolean}
-     */
-    useCompactRepresentation: false
-  }
-}
+// Import central configuration system
+const configSystem = require('./config')
+
+// Import dynamic loader
+const dynamicLoader = require('./dynamicLoader')
 
 /**
  * Update configuration with custom settings
@@ -121,29 +22,7 @@ const config = {
  * @returns {Object} The updated configuration object
  */
 function configure(options) {
-  if (!options || typeof options !== 'object') {
-    throw new Error('Configuration options must be an object')
-  }
-  
-  // Helper function to recursively merge objects
-  function deepMerge(target, source) {
-    for (const key in source) {
-      if (Object.prototype.hasOwnProperty.call(source, key)) {
-        if (
-          source[key] instanceof Object && 
-          key in target && 
-          target[key] instanceof Object
-        ) {
-          deepMerge(target[key], source[key])
-        } else {
-          target[key] = source[key]
-        }
-      }
-    }
-    return target
-  }
-  
-  return deepMerge(config, options)
+  return configSystem.configure(options)
 }
 
 /**
@@ -229,7 +108,7 @@ function createStream(transformer) {
  * @returns {Promise} A promise that resolves with the operation result
  */
 function createAsync(operation, options = {}) {
-  const opOptions = { ...config.async, ...options }
+  const opOptions = { ...configSystem.config.async, ...options }
   
   return new Promise((resolve, reject) => {
     let isCompleted = false
@@ -320,9 +199,6 @@ function getPlugin(name) {
   return plugins.get(name)
 }
 
-// Import dynamic loader
-const dynamicLoader = require('./dynamicLoader')
-
 // Primary exports - Core API
 module.exports = {
   // Main classes
@@ -331,7 +207,9 @@ module.exports = {
   
   // Configuration system
   configure,
-  config,
+  config: configSystem.config,
+  resetConfig: configSystem.resetConfig,
+  getConfig: configSystem.getConfig,
   
   // Stream processing
   createStream,
