@@ -1499,12 +1499,16 @@ function sqrt(n) {
  * Optimized for finding medium-sized factors of large numbers
  * Enhanced with Prime Framework optimizations for universal coordinates
  * 
+ * This implementation uses configurable parameters for number of curves, bounds, and memory limits.
+ * All limits can be set either through the options parameter or via the global configuration 
+ * system in config.factorization.ecm.
+ * 
  * @param {BigInt} n - The number to factor
  * @param {Object} [options] - Algorithm options
- * @param {number} [options.curves=20] - Number of curves to try
- * @param {number} [options.b1=100000] - Stage 1 bound
- * @param {number} [options.b2=0] - Stage 2 bound (0 = skip stage 2)
- * @param {number} [options.maxMemory=100] - Max memory usage (MB)
+ * @param {number} [options.curves] - Number of curves to try (default: config.factorization.ecm.maxCurves or scaled by number size)
+ * @param {number} [options.b1] - Stage 1 bound (default: config.factorization.ecm.defaultB1)
+ * @param {number} [options.b2] - Stage 2 bound (default: config.factorization.ecm.defaultB2 or b1*100 if 0)
+ * @param {number} [options.maxMemory] - Max memory usage in MB (default: config.factorization.ecm.maxMemory or config.factorization.memoryLimit)
  * @returns {BigInt} A non-trivial factor of n, or n if no factor is found
  * @throws {PrimeMathError} If input is not a positive composite number
  */
@@ -1547,17 +1551,33 @@ function ellipticCurveMethod(n, options = {}) {
     return n
   }
   
-  // Parse options with improved defaults based on input size
+  // Parse options with improved defaults from config
   // Scale parameters based on the size of n
   const digits = n.toString().length
-  const curves = options.curves || Math.min(20 + Math.floor(digits / 5), 100)
-  const b1Base = options.b1 || 100000
-  const b1 = Math.min(b1Base * Math.pow(1.1, Math.min(digits - 15, 15)), 10000000)
-  const b2 = options.b2 || (b1 * 100)
-  const maxMemory = options.maxMemory || 100
+  
+  // Get ECM configuration settings
+  const ecmConfig = config.factorization.ecm
+  
+  // Curves: Scale based on number size but respect maxCurves config
+  const curveBase = 20 + Math.floor(digits / 5)
+  const configMaxCurves = ecmConfig.maxCurves
+  const curves = options.curves || Math.min(curveBase, configMaxCurves)
+  
+  // B1 bound: Scale based on number size using configurable factor
+  const b1Base = options.b1 || ecmConfig.defaultB1
+  const b1ScaleFactor = ecmConfig.b1ScaleFactor
+  // Ensure b1 is a valid integer by rounding
+  const b1 = Math.round(b1Base * Math.pow(b1ScaleFactor, Math.min(digits - 15, 15)))
+  
+  // B2 bound: Use provided value, calculated from B1, or config default
+  const b2 = options.b2 || ecmConfig.defaultB2 || (b1 * 100)
+  
+  // Memory limit: Use provided value or config default
+  const maxMemory = options.maxMemory || 
+    (config.factorization.memoryLimit || ecmConfig.maxMemory || ecmConfig.defaultMemory)
   
   // Memory limit for stage 2 (in elements)
-  const maxElements = (maxMemory * 1024 * 1024) / 16 // 16 bytes per element
+  const maxElements = maxMemory ? (maxMemory * 1024 * 1024) / 16 : Number.MAX_SAFE_INTEGER // 16 bytes per element
   
   // Prime Framework enhancement: Use prime cache for better performance
   // Precompute primes up to B1 using the cached prime generator
@@ -1667,13 +1687,18 @@ function ellipticCurveMethod(n, options = {}) {
  * Stage 2 of the ECM algorithm using improved continuation
  * Prime Framework enhanced for better performance
  * 
+ * This implementation uses a configurable baby-step/giant-step approach
+ * with memory constraints determined by the maxElements parameter.
+ * The algorithm dynamically adjusts the parameters to work within
+ * the specified memory constraints.
+ * 
  * @private
  * @param {Object} P - Starting point from Stage 1 in Montgomery form
  * @param {BigInt} A - Curve parameter A
  * @param {BigInt} n - Number to factor
  * @param {number} b1 - Stage 1 bound
  * @param {number} b2 - Stage 2 bound
- * @param {number} maxElements - Memory constraint
+ * @param {number} maxElements - Memory constraint (number of point elements that can be stored)
  * @returns {BigInt} A factor of n, or 1 if none found
  */
 function ecmStage2(P, A, n, b1, b2, maxElements) {

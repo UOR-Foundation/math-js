@@ -1,6 +1,11 @@
 // Example of using the math-js library for prime factorization
-const { UniversalNumber } = require('../src')
-const { factorizeOptimal, factorizeParallel, factorizationCache } = require('../src').internal.Factorization
+const { UniversalNumber, configure } = require('../src')
+const { 
+  factorizeOptimal, 
+  factorizeParallel, 
+  factorizationCache,
+  ellipticCurveMethod
+} = require('../src').internal.Factorization
 
 console.log('=== Basic Factorization with UniversalNumber ===')
 
@@ -59,6 +64,43 @@ console.log(`Factors of ${largeNumber}: ${formatFactorization(factors2)}`)
 // Show cache statistics
 const cacheStats = factorizationCache.getStats()
 console.log('\nCache statistics:', cacheStats)
+
+console.log('\n=== Configurable ECM Factorization ===')
+
+// Configure ECM parameters
+configure({
+  factorization: {
+    ecm: {
+      maxCurves: 150,        // Increase max curves
+      defaultB1: 200000,     // Double the default B1 bound
+      maxMemory: 200         // Double the memory limit
+    }
+  }
+})
+
+// Using ECM with a composite number
+console.log('Factorizing using ECM with custom configuration:')
+const composite = 7919n * 7927n // Product of two primes
+console.time('ECM factorization')
+const ecmFactor = ellipticCurveMethod(composite)
+console.timeEnd('ECM factorization')
+
+console.log(`Factor of ${composite}: ${ecmFactor}`)
+console.log(`Verification: ${composite} % ${ecmFactor} = ${composite % ecmFactor}`)
+
+// Try with different parameters
+console.log('\nFactorizing using ECM with custom parameters:')
+console.time('ECM with custom params')
+const ecmFactor2 = ellipticCurveMethod(composite, { 
+  curves: 10,       // Use fewer curves
+  b1: 50000,        // Use smaller B1 bound
+  b2: 100000,       // Use custom B2 bound
+  maxMemory: 50     // Use less memory
+})
+console.timeEnd('ECM with custom params')
+
+console.log(`Factor from custom parameters: ${ecmFactor2}`)
+console.log(`Verification: ${composite} % ${ecmFactor2} = ${composite % ecmFactor2}`)
 
 // Helper function to format factorization
 function formatFactorization(factorMap) {

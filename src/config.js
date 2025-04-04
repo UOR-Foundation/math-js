@@ -148,6 +148,54 @@ const defaultConfig = {
        * @type {number}
        */
       quadraticSieve: 100
+    },
+    
+    /**
+     * Elliptic Curve Method (ECM) specific settings
+     * @type {Object}
+     */
+    ecm: {
+      /**
+       * Default maximum number of curves to try in ECM
+       * Higher values increase chance of finding factors but take longer
+       * @type {number}
+       */
+      maxCurves: 100,
+      
+      /**
+       * Default B1 bound for stage 1 of ECM
+       * Larger values can find larger factors
+       * @type {number}
+       */
+      defaultB1: 100000,
+      
+      /**
+       * Default B2 bound for stage 2 of ECM (0 = auto-calculate as B1 * 100)
+       * Larger values can find larger factors
+       * @type {number}
+       */
+      defaultB2: 0,
+      
+      /**
+       * Maximum memory (in MB) to use for ECM stage 2
+       * Higher values improve performance but increase memory usage
+       * 0 = no specific limit (use system available memory)
+       * @type {number}
+       */
+      maxMemory: 0,
+      
+      /**
+       * Base factor for scaling B1 parameter based on input size
+       * B1 is multiplied by this factor raised to a power based on number size
+       * @type {number}
+       */
+      b1ScaleFactor: 1.1,
+      
+      /**
+       * Default memory (in MB) for ECM stage 2 when no limit is specified
+       * @type {number}
+       */
+      defaultMemory: 100
     }
   },
   
