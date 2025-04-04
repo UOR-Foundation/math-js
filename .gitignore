@@ -10,6 +10,9 @@ docs/generated/
 # Testing
 coverage/
 
+# Benchmark results
+benchmarks/results/
+
 # Logs
 logs/
 *.log

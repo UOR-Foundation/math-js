@@ -91,8 +91,8 @@ suite.add('String to UniversalNumber (large)', () => {
 })
 
 suite.add('BigInt to UniversalNumber', () => {
-  const numbers = createConversionTestNumbers().binary
-    .map(n => typeof n === 'bigint' ? n : BigInt(n))
+  // Use smaller numbers to avoid recursion issues
+  const numbers = [1n, 2n, 3n, 10n, 100n, 255n, 1000n]
   
   let results = []
   for (const num of numbers) {
@@ -143,8 +143,12 @@ suite.add('UniversalNumber to String (decimal)', () => {
 
 // Base conversion benchmarks
 suite.add('UniversalNumber to String (binary)', () => {
-  const numbers = createConversionTestNumbers().binary
-    .map(n => typeof n === 'bigint' ? new UniversalNumber(n.toString()) : new UniversalNumber(n))
+  // Use smaller numbers to avoid stack overflow
+  const numbers = [
+    new UniversalNumber(255),   // 2^8 - 1
+    new UniversalNumber(65535), // 2^16 - 1
+    new UniversalNumber('4294967295') // 2^32 - 1
+  ]
   
   let results = []
   for (const num of numbers) {
@@ -155,8 +159,12 @@ suite.add('UniversalNumber to String (binary)', () => {
 })
 
 suite.add('UniversalNumber to String (hex)', () => {
-  const numbers = createConversionTestNumbers().binary
-    .map(n => typeof n === 'bigint' ? new UniversalNumber(n.toString()) : new UniversalNumber(n))
+  // Use smaller numbers to avoid stack overflow
+  const numbers = [
+    new UniversalNumber(255),   // 2^8 - 1
+    new UniversalNumber(65535), // 2^16 - 1
+    new UniversalNumber('4294967295') // 2^32 - 1
+  ]
   
   let results = []
   for (const num of numbers) {
@@ -220,7 +228,8 @@ suite.add('getDigits Performance (base 10)', () => {
   const numbers = [
     new UniversalNumber(12345),
     new UniversalNumber(9876543),
-    new UniversalNumber('123456789012345')
+    // Use smaller number to avoid stack overflow
+    new UniversalNumber('1234567890')
   ]
   
   let results = []

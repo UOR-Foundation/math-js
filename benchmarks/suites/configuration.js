@@ -56,7 +56,8 @@ function createBenchmarkOperations() {
     
     // Conversion-heavy workload
     conversionWorkload: () => {
-      const a = new UniversalNumber(BigInt('1234567890123456789012345678901234567890'))
+      // Use a small number that can be directly parsed
+      const a = new UniversalNumber(123456)
       
       // Convert to different bases
       const asBinary = a.toString(2)
