@@ -167,7 +167,7 @@ describe('Factorization Module', () => {
     })
     
     test('should handle options', () => {
-      const factor = pollardRho(1001n, { maxIterations: 10000, c: 2n })
+      const factor = pollardRho(1001n, { timeLimit: 5000, c: 2n })
       expect(1001n % factor).toBe(0n)
     })
   })

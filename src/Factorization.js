@@ -787,8 +787,9 @@ function modularFastExp(base, exponent, modulus) {
  * 
  * @param {BigInt} n - The number to factor
  * @param {Object} [options] - Algorithm options
- * @param {number} [options.maxIterations=1000000] - Maximum number of iterations
+ * @param {number} [options.maxIterations] - Maximum number of iterations (if not specified, no limit is applied)
  * @param {BigInt} [options.c=1n] - Polynomial constant
+ * @param {number} [options.timeLimit] - Maximum time to spend in milliseconds (if not specified, no time limit is applied)
  * @returns {BigInt} A non-trivial factor of n, or n if no factor is found
  */
 function pollardRho(n, options = {}) {
@@ -796,7 +797,14 @@ function pollardRho(n, options = {}) {
   if (n % 2n === 0n) return 2n
   if (n % 3n === 0n) return 3n
   
-  const maxIterations = options.maxIterations || config.factorization.maxIterations
+  // If the number is prime, return the number itself
+  // This is needed for tests and expected behavior
+  if (isPrime(n)) return n
+  
+  // Get configuration options with fallbacks
+  // Note: No default maxIterations - will run until a factor is found or other limits are reached
+  const maxIterations = options.maxIterations 
+  const timeLimit = options.timeLimit || config.factorization.timeLimit
   const c = options.c !== undefined ? toBigInt(options.c) : 1n
   
   // Define the polynomial function f(x) = (x^2 + c) % n
@@ -804,6 +812,9 @@ function pollardRho(n, options = {}) {
   
   // Try with different starting values if needed
   const startValues = [2n, 3n, 5n, 7n, 11n, 13n, 17n, 19n]
+  
+  // Track start time if we have a time limit
+  const startTime = timeLimit ? Date.now() : 0
   
   for (const startValue of startValues) {
     // Initialize with the current start value
@@ -817,7 +828,12 @@ function pollardRho(n, options = {}) {
     
     let iterations = 0
     
-    while (d === 1n && iterations < maxIterations) {
+    // Continue while we haven't found a factor and haven't hit any limits
+    while (d === 1n && 
+           // Check iteration limit only if maxIterations is specified
+           (maxIterations === undefined || iterations < maxIterations) &&
+           // Check time limit only if timeLimit is specified
+           (timeLimit === undefined || Date.now() - startTime < timeLimit)) {
       if (lam === power) {
         y = x
         power *= 2n
@@ -2114,7 +2130,7 @@ function findFactorsPollardRho(n, factors = new Map(), options = {}) {
     // This follows the Prime Framework's emphasis on exact factorization efficiency
     factor = pollardRho(n, {
       ...options,
-      maxIterations: 200000,
+      timeLimit: options.timeLimit || 10000, // 10 seconds default timeout
       // Try multiple values of c for better chances of finding a factor
       c: (options.iteration || 0) % 5 === 0 ? 1n : 
         (options.iteration || 0) % 5 === 1 ? 2n :
@@ -2134,7 +2150,7 @@ function findFactorsPollardRho(n, factors = new Map(), options = {}) {
     // The Prime Framework emphasizes efficient factorization of universal coordinates
     factor = ellipticCurveMethod(n, {
       curves: options.ecmCurves || Math.min(15, 5 + Math.floor(numDigits / 5)),
-      b1: options.ecmB1 || Math.min(config.factorization.maxIterations, 50000 * Math.floor(numDigits / 10)),
+      b1: options.ecmB1 || 50000 * Math.floor(numDigits / 10),
       b2: options.ecmB2 || 0 // Skip stage 2 for smaller numbers
     })
     
@@ -2159,7 +2175,7 @@ function findFactorsPollardRho(n, factors = new Map(), options = {}) {
     if (factor === n && options.advanced) {
       factor = ellipticCurveMethod(n, {
         curves: options.ecmCurves || 30,
-        b1: options.ecmB1 || config.factorization.maxIterations,
+        b1: options.ecmB1 || 1000000, // Default to a reasonable value with no upper limit
         b2: options.ecmB2 || 100000000
       })
     }
@@ -2533,7 +2549,7 @@ function factorizeOptimal(n, options = {}) {
       partialFactorization,
       // Scale parameters based on number size
       ecmCurves: algorithmParams.ecmCurves || Math.min(30, 10 + Math.floor(numDigits / 5)),
-      ecmB1: algorithmParams.ecmB1 || Math.min(config.factorization.maxIterations, 100000 * Math.floor(numDigits / 20)),
+      ecmB1: algorithmParams.ecmB1 || 100000 * Math.floor(numDigits / 20),
       ecmB2: algorithmParams.ecmB2 || Math.min(100000000, 1000000 * Math.floor(numDigits / 20)),
       qsFactorBase: algorithmParams.qsFactorBase || Math.min(500, 100 + Math.floor(numDigits / 4) * 20),
       qsSieveSize: algorithmParams.qsSieveSize || Math.min(100000, 10000 + numDigits * 500),
@@ -3004,7 +3020,7 @@ function factorizeParallel(n, options = {}) {
   // For this simulated version, we'll just use our enhanced sequential algorithms
       
   const factor = pollardRho(remaining, {
-    maxIterations: 100000,
+    timeLimit: options.timeLimit,
     c: 1n
   })
   

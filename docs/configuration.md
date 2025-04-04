@@ -71,7 +71,6 @@ math.configure({
     algorithm: 'auto',           // Algorithm to use ('auto', 'trial', 'pollard', etc.)
     timeLimit: 10000,            // Time limit in ms (0 = no limit)
     memoryLimit: 500,            // Memory limit in MB (0 = no limit)
-    maxIterations: 1000000,      // Max iterations for probabilistic algorithms
     
     // Factorization method selection thresholds (based on number of digits)
     thresholds: {
