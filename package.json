@@ -1,5 +1,5 @@
 {
-  "name": "uor-math-js",
+  "name": "@uor-foundation/math-js",
   "version": "0.1.0",
   "description": "A JavaScript library implementing the Prime Framework for universal number representation",
   "main": "dist/index.js",
@@ -55,6 +55,7 @@
     "typescript": "^5.4.2"
   },
   "publishConfig": {
+    "registry": "https://npm.pkg.github.com/",
     "access": "public"
   }
 }
