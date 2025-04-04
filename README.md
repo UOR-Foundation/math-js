@@ -80,6 +80,29 @@ npm run docs
 
 Then open `docs/generated/index.html` in your browser.
 
+## Performance Benchmarking
+
+The library includes a comprehensive benchmarking system to measure and optimize performance. To run benchmarks:
+
+```bash
+# Run all benchmarks
+npm run benchmark
+
+# Run with garbage collection for more accurate memory measurements
+npm run benchmark:gc
+
+# Run benchmarks and analyze results
+npm run benchmark:analyze
+
+# Run benchmarks, analyze results, and generate visualizations
+npm run benchmark:visualize
+
+# Run memory-specific benchmarks
+npm run benchmark:memory
+```
+
+For more details, see the [benchmarks README](./benchmarks/README.md).
+
 ## License
 
 MIT
