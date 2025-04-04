@@ -1,0 +1,34 @@
+# Source and test files (only dist/ should be published)
+src/
+tests/
+examples/
+
+# CI and development files
+.github/
+.vscode/
+.eslintrc.js
+.eslintignore
+.editorconfig
+.gitignore
+
+# Documentation files
+docs/
+jsdoc.json
+jsdoc-plugins/
+lib-spec.md
+repo-spec.md
+repo-plan.md
+CLAUDE.md
+
+# Benchmark files
+benchmarks/
+
+# Configuration files
+tsconfig.json
+
+# Temporary files
+*.log
+*.tmp
+.DS_Store
+
+# Only include compiled JavaScript in dist/
