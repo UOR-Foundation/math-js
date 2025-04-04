@@ -71,7 +71,41 @@ math.configure({
     algorithm: 'auto',           // Algorithm to use ('auto', 'trial', 'pollard', etc.)
     timeLimit: 10000,            // Time limit in ms (0 = no limit)
     memoryLimit: 500,            // Memory limit in MB (0 = no limit)
-    maxIterations: 1000000       // Max iterations for probabilistic algorithms
+    maxIterations: 1000000,      // Max iterations for probabilistic algorithms
+    
+    // Factorization method selection thresholds (based on number of digits)
+    thresholds: {
+      trialDivision: 6,          // Max digits for basic trial division
+      optimizedTrialDivision: 12, // Max digits for optimized trial division
+      pollardRho: 25,            // Max digits for Pollard's Rho algorithm
+      ecm: 50,                   // Max digits for Elliptic Curve Method
+      quadraticSieve: 100        // Max digits for Quadratic Sieve
+    }
+  }
+});
+```
+
+#### Factorization Method Thresholds
+
+The `factorization.thresholds` configuration controls when the library switches between different factorization algorithms based on the input number size (measured in digits):
+
+* **trialDivision**: For very small numbers, simple trial division is used
+* **optimizedTrialDivision**: Slightly larger numbers use trial division with precomputed primes
+* **pollardRho**: Medium-sized numbers use Pollard's Rho algorithm for better performance
+* **ecm**: Large numbers use the Elliptic Curve Method
+* **quadraticSieve**: Very large numbers use the Quadratic Sieve algorithm
+
+Example of adjusting thresholds for systems with powerful CPUs:
+
+```javascript
+math.configure({
+  factorization: {
+    thresholds: {
+      // Extend Pollard's Rho range to handle larger numbers
+      pollardRho: 35,
+      // Use ECM for even larger numbers
+      ecm: 70
+    }
   }
 });
 ```
