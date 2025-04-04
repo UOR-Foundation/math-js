@@ -8,6 +8,8 @@ on:
 jobs:
   docs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js
@@ -22,3 +24,4 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: ./docs/generated
+          token: ${{ secrets.GITHUB_TOKEN }}
