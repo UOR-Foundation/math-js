@@ -206,7 +206,21 @@ const defaultConfig = {
      * and available system resources
      * @type {boolean}
      */
-    dynamicSegmentSizing: true
+    dynamicSegmentSizing: true,
+    
+    /**
+     * Size of each chunk for the basic sieve when handling large ranges
+     * Controls memory usage vs. performance tradeoff
+     * @type {number}
+     */
+    basicSieveChunkSize: 1000000,
+    
+    /**
+     * Maximum number of primes to generate in a single operation
+     * Acts as a safety limit to prevent memory exhaustion
+     * @type {number}
+     */
+    maxPrimesGenerated: 10000000
   },
   
   /**
