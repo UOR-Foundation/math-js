@@ -105,13 +105,15 @@ _primeCache.initialize()
  * Fast exponentiation algorithm (exponentiation by squaring)
  * Efficiently computes base^exponent in O(log n) time
  * Optimized for use in the Prime Framework
+ * Enhanced to handle large exponents safely
  * 
  * @param {BigInt} base - The base value
  * @param {BigInt} exponent - The exponent value (must be non-negative)
- * @returns {BigInt} base raised to the power of exponent
+ * @param {BigInt} [modulus] - Optional modulus for modular exponentiation
+ * @returns {BigInt} base raised to the power of exponent (modulo modulus if provided)
  * @throws {PrimeMathError} If exponent is negative
  */
-function fastExp(base, exponent) {
+function fastExp(base, exponent, modulus = null) {
   if (exponent < 0n) {
     throw new PrimeMathError('Exponent must be non-negative in the Prime Framework')
   }
@@ -125,21 +127,67 @@ function fastExp(base, exponent) {
   if (base === 1n) return 1n
   if (base === -1n) return exponent % 2n === 0n ? 1n : -1n
   
-  let result = 1n
-  let currentBase = base
-  let currentExponent = exponent
-  
-  while (currentExponent > 0n) {
-    if (currentExponent % 2n === 1n) {
-      // If the current exponent is odd, multiply the result by the current base
-      result *= currentBase
-    }
-    // Square the base and halve the exponent
-    currentBase *= currentBase
-    currentExponent /= 2n
+  // If modulus is provided, ensure base is within the modulus range
+  if (modulus !== null) {
+    base = base % modulus
   }
   
-  return result
+  // Handle large exponents more safely with modular arithmetic
+  if (modulus !== null) {
+    let result = 1n
+    let currentBase = base
+    let currentExponent = exponent
+    
+    while (currentExponent > 0n) {
+      if (currentExponent % 2n === 1n) {
+        // If the current exponent is odd, multiply the result by the current base
+        result = (result * currentBase) % modulus
+      }
+      // Square the base and halve the exponent
+      currentBase = (currentBase * currentBase) % modulus
+      currentExponent /= 2n
+    }
+    
+    return result
+  } else {
+    // Standard binary exponentiation for non-modular cases
+    // Add safety checks to avoid overflow
+    
+    // For very large exponents on values > 1, we might overflow
+    if (exponent > 1000n && (base > 10n || base < -10n)) {
+      throw new PrimeMathError(
+        'Exponentiation may exceed safe BigInt range. Use modular exponentiation instead.',
+        { cause: { base, exponent } }
+      )
+    }
+    
+    let result = 1n
+    let currentBase = base
+    let currentExponent = exponent
+    
+    while (currentExponent > 0n) {
+      if (currentExponent % 2n === 1n) {
+        // If the current exponent is odd, multiply the result by the current base
+        result *= currentBase
+      }
+      
+      // Early termination for very large numbers
+      if (currentExponent > 1n && 
+          currentBase > Number.MAX_SAFE_INTEGER && 
+          result > Number.MAX_SAFE_INTEGER) {
+        throw new PrimeMathError(
+          'Exponentiation result exceeds safe computation range',
+          { cause: { base, exponent, currentExponent } }
+        )
+      }
+      
+      // Square the base and halve the exponent
+      currentBase *= currentBase
+      currentExponent /= 2n
+    }
+    
+    return result
+  }
 }
 
 /**
@@ -303,6 +351,7 @@ function toBigInt(value) {
  * Miller-Rabin primality test implementation
  * Deterministic for n < 2^64, probabilistic for larger numbers
  * Used for efficient primality testing of large numbers
+ * Enhanced to safely handle very large numbers
  * 
  * @private
  * @param {BigInt} n - The number to test for primality
@@ -327,20 +376,36 @@ function _millerRabinTest(n, k = null) {
     r += 1n
   }
   
-  // Use deterministic bases for n < 2^64
+  // Check if we can safely perform a deterministic test
   const isPotentiallyDeterministic = n < 2n ** 64n
+  
+  // Safety check for extremely large numbers
+  if (n > 2n ** 100n) {
+    // For extremely large numbers, use a simplified primality test
+    // to avoid BigInt overflow in the Miller-Rabin test
+    
+    // Try division by small prime numbers
+    for (const p of _primeCache.knownPrimes) {
+      if (p * p > n) break // No need to check further
+      if (n % p === 0n) return false
+    }
+    
+    // For extremely large numbers, use a minimal set of witnesses
+    // and perform fewer rounds to avoid computation errors
+    k = Math.min(k, 5)
+  }
   
   /**
    * @param {BigInt} a - The witness to test
    * @returns {boolean} True if the witness passes, false otherwise
    */
   const witnessLoop = (a) => {
-    // Compute a^d % n
-    let x = fastExp(a, d) % n
+    // Compute a^d % n using modular exponentiation to prevent overflow
+    let x = fastExp(a, d, n)
     
     if (x === 1n || x === n - 1n) return true
     
-    // Square x repeatedly r-1 times
+    // Square x repeatedly r-1 times (with modular arithmetic)
     for (let i = 1n; i < r; i++) {
       x = (x * x) % n
       if (x === n - 1n) return true
@@ -364,13 +429,22 @@ function _millerRabinTest(n, k = null) {
   
   // Probabilistic Miller-Rabin for larger numbers
   for (let i = 0; i < k; i++) {
-    // Generate random witness a with 2 <= a <= n-2
-    // For simulation purposes in deterministic context, we'll use a pattern
+    // To prevent randomness issues in deterministic contexts, use well-known values
     // Use first few primes as deterministic witnesses
     const knownPrimes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]
     const a = BigInt(knownPrimes[i % knownPrimes.length]) % (n - 3n) + 2n
     
-    if (!witnessLoop(a)) return false
+    try {
+      if (!witnessLoop(a)) return false
+    } catch (error) {
+      // If we get computational errors, fall back to a different approach
+      if (error instanceof PrimeMathError) {
+        // If Miller-Rabin test fails due to computational limits,
+        // perform a more basic analysis
+        return isPrime(n, { useCache: false, updateCache: false })
+      }
+      throw error // Rethrow unexpected errors
+    }
   }
   
   return true
@@ -568,12 +642,14 @@ function pruneCache() {
  * Get a range of prime numbers
  * Efficiently generates primes within a specified range
  * Uses segmented sieve of Eratosthenes for optimal performance
+ * Enhanced to respect configurable limits
  * 
  * @param {BigInt|number} start - The lower bound of the range (inclusive)
  * @param {BigInt|number} end - The upper bound of the range (inclusive)
  * @param {Object} [options] - Options for prime generation
  * @param {BigInt|number} [options.segmentSize] - Size of each segment for the segmented sieve
  * @param {boolean} [options.dynamic] - Whether to use dynamic segment sizing (overrides config)
+ * @param {number} [options.maxCount] - Maximum number of primes to return
  * @returns {BigInt[]} Array of prime numbers in the specified range
  * @throws {PrimeMathError} If parameters are invalid
  */
@@ -591,6 +667,9 @@ function getPrimeRange(start, end, options = {}) {
     throw new PrimeMathError('End parameter must be greater than or equal to start parameter')
   }
   
+  // Get maximum count from options or configuration
+  const maxCount = options.maxCount || config.primalityTesting.maxPrimesGenerated
+  
   // Adjust start to be at least 2 (the first prime)
   if (start < 2n) {
     start = 2n
@@ -599,7 +678,7 @@ function getPrimeRange(start, end, options = {}) {
   // Small range can use naive approach
   if (end - start < 1000000n) {
     const primes = []
-    for (let n = start; n <= end; n++) {
+    for (let n = start; n <= end && primes.length < maxCount; n++) {
       if (isPrime(n)) {
         primes.push(n)
       }
@@ -609,7 +688,8 @@ function getPrimeRange(start, end, options = {}) {
   
   // Prepare options for segmented sieve
   const sieveOptions = {
-    segmentSize: options.segmentSize || null
+    segmentSize: options.segmentSize || null,
+    maxCount: maxCount
   }
   
   // Handle dynamic sizing option if explicitly specified
@@ -625,16 +705,22 @@ function getPrimeRange(start, end, options = {}) {
 /**
  * Segmented Sieve of Eratosthenes for finding primes in a range
  * Memory-efficient algorithm for large ranges
+ * Enhanced to respect maximum count limits
  * 
  * @private
  * @param {BigInt} low - Lower bound (inclusive)
  * @param {BigInt} high - Upper bound (inclusive)
  * @param {Object} [options] - Options for the sieve
  * @param {BigInt|number} [options.segmentSize] - Size of each segment to process
+ * @param {boolean} [options.dynamicSegmentSizing] - Whether to use dynamic segment sizing
+ * @param {number} [options.maxCount] - Maximum number of primes to return
  * @returns {BigInt[]} Array of primes in the range [low, high]
  */
 function segmentedSieveOfEratosthenes(low, high, options = {}) {
   const primes = []
+  
+  // Get maximum count from options or configuration
+  const maxCount = options.maxCount || config.primalityTesting.maxPrimesGenerated || Number.MAX_SAFE_INTEGER
   
   // Get segment size from options, or use the global configuration
   let segmentSize = options.segmentSize ? toBigInt(options.segmentSize) : null
@@ -675,6 +761,11 @@ function segmentedSieveOfEratosthenes(low, high, options = {}) {
   
   // Process range in segments to save memory
   for (let segmentStart = low; segmentStart <= high; segmentStart += segmentSize) {
+    // Check if we've reached the maximum count
+    if (primes.length >= maxCount) {
+      break
+    }
+    
     const segmentEnd = segmentStart + segmentSize - 1n > high ? high : segmentStart + segmentSize - 1n
     
     // Create a boolean array representing primality in current segment
@@ -700,8 +791,8 @@ function segmentedSieveOfEratosthenes(low, high, options = {}) {
       }
     }
     
-    // Collect primes from current segment
-    for (let i = 0; i < segmentSizeNumber; i++) {
+    // Collect primes from current segment - up to maximum count
+    for (let i = 0; i < segmentSizeNumber && primes.length < maxCount; i++) {
       const num = segmentStart + BigInt(i)
       if (segment[i] && num >= 2n) {
         primes.push(num)
@@ -721,43 +812,237 @@ function segmentedSieveOfEratosthenes(low, high, options = {}) {
 /**
  * Basic Sieve of Eratosthenes for generating primes up to a limit
  * Used internally by the segmented sieve
+ * Enhanced to handle arbitrarily large ranges through chunking
  * 
  * @private
  * @param {BigInt} limit - Upper bound (inclusive)
  * @returns {BigInt[]} Array of primes up to limit
  */
 function basicSieveOfEratosthenes(limit) {
-  // Convert to number for array indexing
-  const n = Number(limit)
-  if (n > Number.MAX_SAFE_INTEGER) {
-    throw new PrimeMathError('Basic sieve limit too large for memory')
+  // Make sure limit is a BigInt
+  limit = toBigInt(limit)
+  
+  // For small values, use the original optimized implementation
+  if (limit <= BigInt(Number.MAX_SAFE_INTEGER)) {
+    const n = Number(limit)
+    
+    // Initialize the sieve
+    const sieve = new Array(n + 1).fill(true)
+    sieve[0] = sieve[1] = false
+    
+    // Mark composite numbers
+    for (let i = 2; i * i <= n; i++) {
+      if (sieve[i]) {
+        for (let j = i * i; j <= n; j += i) {
+          sieve[j] = false
+        }
+      }
+    }
+    
+    // Collect primes
+    const primes = []
+    for (let i = 2; i <= n; i++) {
+      if (sieve[i]) {
+        primes.push(BigInt(i))
+        
+        // Update prime cache
+        _primeCache.primalityMap.set(BigInt(i).toString(), true)
+      }
+    }
+    
+    return primes
   }
   
-  // Initialize the sieve
-  const sieve = new Array(n + 1).fill(true)
-  sieve[0] = sieve[1] = false
+  // For larger values, we need a more memory-efficient approach
+  // Either use segmented sieve or just trial division based on size
   
-  // Mark composite numbers
-  for (let i = 2; i * i <= n; i++) {
-    if (sieve[i]) {
-      for (let j = i * i; j <= n; j += i) {
-        sieve[j] = false
+  // If the number is extremely large, it's better to handle this in the calling code
+  if (limit > 2n ** 64n) {
+    throw new PrimeMathError(
+      'Basic sieve limit too large for direct processing, use segmentedSieveOfEratosthenes instead',
+      { cause: { limit } }
+    )
+  }
+  
+  const maxSafeInt = BigInt(Number.MAX_SAFE_INTEGER)
+  
+  // If the number is just slightly above MAX_SAFE_INTEGER, use a more controlled approach
+  // Get chunk size from configuration
+  const chunkSize = config.primalityTesting.basicSieveChunkSize 
+    ? BigInt(config.primalityTesting.basicSieveChunkSize)
+    : 100000n  // Default to 100k for safer memory usage
+  
+  // Set a safety limit for the number of primes we'll collect
+  const maxPrimesToCollect = config.primalityTesting.maxPrimesGenerated || 1000000
+  
+  // Collect primes but limit array size
+  const allPrimes = []
+  
+  // First generate primes up to sqrt(limit) - these are needed to sieve higher numbers
+  const sqrtLimit = sqrt(limit)
+  
+  // Only use recursion for manageable sqrt values to avoid stack issues
+  let smallPrimes
+  if (sqrtLimit <= 1000000n) {
+    // Safe to recursively get small primes
+    smallPrimes = sqrtLimit <= maxSafeInt 
+      ? basicSieveOfEratosthenes(sqrtLimit)
+      : []
+  } else {
+    // For larger sqrt values, use an efficient alternative (trial division)
+    smallPrimes = []
+    for (let i = 2n; i <= sqrtLimit; i++) {
+      let isPrime = true
+      
+      // Only check divisibility by numbers up to sqrt(i)
+      for (let j = 2n; j * j <= i; j++) {
+        if (i % j === 0n) {
+          isPrime = false
+          break
+        }
+      }
+      
+      if (isPrime) {
+        smallPrimes.push(i)
+        // Add to cache
+        _primeCache.primalityMap.set(i.toString(), true)
+      }
+      
+      // Safety check for small primes collection
+      if (smallPrimes.length >= maxPrimesToCollect / 10) {
+        break
       }
     }
   }
   
-  // Collect primes
-  const primes = []
-  for (let i = 2; i <= n; i++) {
-    if (sieve[i]) {
-      primes.push(BigInt(i))
+  // Add small primes to our result
+  if (limit >= 2n) allPrimes.push(...smallPrimes.filter(p => p <= limit))
+  
+  // Now process the range in chunks
+  // Start from max(2, min(limit, sqrt(limit) + 1))
+  let start = sqrtLimit + 1n
+  if (start < 2n) start = 2n
+  if (start > limit) return allPrimes
+  
+  // Only continue with the chunked approach if we have a reasonable number of small primes
+  // Otherwise it's inefficient to sieve
+  if (smallPrimes.length === 0) {
+    // Fall back to trial division for very large ranges with no small primes calculated
+    for (let i = start; i <= limit; i++) {
+      let isPrime = true
       
-      // Update prime cache
-      _primeCache.primalityMap.set(BigInt(i).toString(), true)
+      // Check divisibility by small factors
+      if (i % 2n === 0n || i % 3n === 0n || i % 5n === 0n) {
+        isPrime = false
+      } else {
+        // Check other potential divisors
+        for (let j = 7n; j * j <= i; j += 2n) {
+          if (i % j === 0n) {
+            isPrime = false
+            break
+          }
+        }
+      }
+      
+      if (isPrime) {
+        allPrimes.push(i)
+        _primeCache.primalityMap.set(i.toString(), true)
+      }
+      
+      // Safety check
+      if (allPrimes.length >= maxPrimesToCollect) break
+    }
+    
+    return allPrimes
+  }
+  
+  // Process remaining range in chunks, limiting each chunk size
+  while (start <= limit) {
+    // Calculate end of current chunk
+    const end = (start + chunkSize - 1n) > limit ? limit : (start + chunkSize - 1n)
+    
+    // Constrain the segment size to avoid excessive memory usage
+    const segmentSizeNumber = Math.min(
+      Number(end - start + 1n > maxSafeInt ? maxSafeInt : end - start + 1n),
+      Number(chunkSize), 
+      1000000 // Hard cap at 1M elements for safety
+    )
+    
+    // Only create a segment array if it's reasonably sized
+    if (segmentSizeNumber > 0 && segmentSizeNumber <= 1000000) {
+      const segment = new Array(segmentSizeNumber).fill(true)
+      
+      // Mark multiples of each small prime in the current segment
+      for (const p of smallPrimes) {
+        // Find the first multiple of p in the segment
+        let startMultiple = start
+        if (start % p !== 0n) {
+          startMultiple = start + (p - start % p)
+        }
+        
+        // Skip if the prime itself is in the segment
+        if (startMultiple === p) {
+          startMultiple += p
+        }
+        
+        // Mark multiples within array bounds
+        for (let j = startMultiple; j <= end && (j - start) < BigInt(segmentSizeNumber); j += p) {
+          const idx = Number(j - start)
+          if (idx >= 0 && idx < segmentSizeNumber) {
+            segment[idx] = false
+          }
+        }
+      }
+      
+      // Collect primes from current segment
+      for (let i = 0; i < segmentSizeNumber; i++) {
+        if (segment[i]) {
+          const num = start + BigInt(i)
+          if (num >= 2n && num <= limit) {
+            allPrimes.push(num)
+            
+            // Update prime cache
+            _primeCache.primalityMap.set(num.toString(), true)
+            if (num > _primeCache.largestKnownPrime) {
+              _primeCache.largestKnownPrime = num
+            }
+          }
+        }
+      }
+    } else {
+      // For excessively large segments, use a different approach
+      // Just check individual numbers to avoid memory issues
+      for (let num = start; num <= end; num++) {
+        let isPrime = true
+        
+        for (const p of smallPrimes) {
+          if (p * p > num) break // No need to check past sqrt(num)
+          
+          if (num % p === 0n) {
+            isPrime = false
+            break
+          }
+        }
+        
+        if (isPrime && num >= 2n) {
+          allPrimes.push(num)
+          _primeCache.primalityMap.set(num.toString(), true)
+        }
+        
+        if (allPrimes.length >= maxPrimesToCollect) break
+      }
+    }
+    
+    // Move to next chunk
+    start = end + 1n
+    
+    // Check if we should break due to memory constraints
+    if (allPrimes.length >= maxPrimesToCollect) {
+      break
     }
   }
   
-  return primes
+  return allPrimes
 }
 
 /**
@@ -1235,6 +1520,11 @@ function quadraticResidue(a, p) {
   return result === 1n
 }
 
+// Export for testing in non-production environments
+const testExports = process.env.NODE_ENV === 'test' ? {
+  basicSieveOfEratosthenes
+} : null
+
 module.exports = {
   PrimeMathError,
   fastExp,
@@ -1252,5 +1542,7 @@ module.exports = {
   getNthPrime,
   isMersennePrime,
   moebiusFunction,
-  quadraticResidue
+  quadraticResidue,
+  // Export private functions for testing only
+  __test__: testExports
 }
