@@ -52,6 +52,20 @@ const _factorizationCache = {
   },
   
   /**
+   * Check if persistent caching is enabled
+   */
+  get PERSISTENT_CACHE_ENABLED() {
+    return config.cache.persistentCache
+  },
+  
+  /**
+   * Get the persistent storage key
+   */
+  get STORAGE_KEY() {
+    return 'math-js-factorization-cache'
+  },
+  
+  /**
    * Map storing factorization results
    * key: number as string, value: FactorizationResult
    */
@@ -74,6 +88,16 @@ const _factorizationCache = {
    * key: number as string, value: {lastAccess, accessCount, computationCost}
    */
   metrics: new Map(),
+  
+  /**
+   * Initialize the cache, possibly loading from persistent storage
+   */
+  initialize() {
+    // If persistence is enabled, attempt to load from storage
+    if (this.PERSISTENT_CACHE_ENABLED) {
+      this.loadFromStorage()
+    }
+  },
   
   /**
    * Set the maximum cache size
@@ -185,6 +209,14 @@ const _factorizationCache = {
     if (this.cache.size > this.MAX_CACHE_SIZE) {
       this.prune()
     }
+    
+    // Save to persistent storage if enabled
+    // Do this asynchronously to avoid blocking
+    if (this.PERSISTENT_CACHE_ENABLED) {
+      setTimeout(() => {
+        this.saveToStorage()
+      }, 0)
+    }
   },
   
   /**
@@ -265,6 +297,30 @@ const _factorizationCache = {
     this.stats.misses = 0
     this.stats.total = 0
     this.stats.lastPruneTime = Date.now()
+    
+    // If persistence is enabled, also clear persistent storage
+    if (this.PERSISTENT_CACHE_ENABLED) {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(this.STORAGE_KEY)
+        } else if (typeof global !== 'undefined' && typeof process !== 'undefined') {
+          const fs = require('fs')
+          const path = require('path')
+          
+          const homeDir = process.env.HOME || process.env.USERPROFILE
+          if (homeDir) {
+            const cachePath = path.join(homeDir, '.math-js-cache')
+            const filePath = path.join(cachePath, `${this.STORAGE_KEY}.json`)
+            
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath)
+            }
+          }
+        }
+      } catch (error) {
+        // Fail silently
+      }
+    }
   },
   
   /**
@@ -288,7 +344,238 @@ const _factorizationCache = {
       hits: this.stats.hits,
       misses: this.stats.misses,
       hitRate,
-      efficiency: hitRate * (this.cache.size / this.MAX_CACHE_SIZE)
+      efficiency: hitRate * (this.cache.size / this.MAX_CACHE_SIZE),
+      persistenceEnabled: this.PERSISTENT_CACHE_ENABLED
+    }
+  },
+  
+  /**
+   * Save the cache to persistent storage if enabled
+   * Uses environment-specific storage mechanisms
+   * @returns {boolean} True if successfully saved, false otherwise
+   */
+  saveToStorage() {
+    if (!this.PERSISTENT_CACHE_ENABLED) {
+      return false
+    }
+    
+    try {
+      // Prepare data for serialization
+      const serialized = {
+        version: 1, // For future compatibility
+        timestamp: Date.now(),
+        entries: [],
+        metrics: []
+      }
+      
+      // Only save the most valuable entries to conserve space
+      // This also helps with performance on reload
+      const weightedEntries = []
+      const now = Date.now()
+      
+      // Calculate entry weights using the same formula as in prune()
+      for (const [key, entry] of this.cache.entries()) {
+        const metrics = this.metrics.get(key) || { lastAccess: 0, accessCount: 0, computationCost: 1 }
+        
+        // Calculate entry weight
+        const ageValue = Math.max(0, 1 - ((now - metrics.lastAccess) / (24 * 60 * 60 * 1000)))
+        const frequencyValue = Math.min(1, metrics.accessCount / 10)
+        const costValue = Math.min(1, metrics.computationCost / 10)
+        const confidenceValue = entry.isComplete ? entry.confidence : entry.confidence * 0.5
+        
+        const weight = (
+          ageValue * 0.35 +
+          frequencyValue * 0.25 +
+          costValue * 0.3 +
+          confidenceValue * 0.1
+        )
+        
+        weightedEntries.push({ key, entry, metrics, weight })
+      }
+      
+      // Sort by weight (descending)
+      weightedEntries.sort((a, b) => b.weight - a.weight)
+      
+      // Take only the most valuable entries (limited to MAX_CACHE_SIZE entries)
+      const saveCount = Math.min(this.MAX_CACHE_SIZE, weightedEntries.length)
+      
+      for (let i = 0; i < saveCount; i++) {
+        const { key, entry, metrics } = weightedEntries[i]
+        
+        // Convert the Map to an array for serialization
+        const factorArray = []
+        for (const [prime, exponent] of entry.factors) {
+          factorArray.push([prime.toString(), exponent.toString()])
+        }
+        
+        // Add to serialized data
+        serialized.entries.push({
+          key,
+          factorArray,
+          isComplete: entry.isComplete,
+          confidence: entry.confidence
+        })
+        
+        serialized.metrics.push({
+          key,
+          lastAccess: metrics.lastAccess,
+          accessCount: metrics.accessCount,
+          computationCost: metrics.computationCost
+        })
+      }
+      
+      // Serialize and store
+      const serializedString = JSON.stringify(serialized)
+      
+      // Determine storage mechanism based on environment
+      if (typeof localStorage !== 'undefined') {
+        // Browser environment
+        localStorage.setItem(this.STORAGE_KEY, serializedString)
+      } else if (typeof global !== 'undefined' && typeof process !== 'undefined') {
+        // Node.js environment
+        try {
+          const fs = require('fs')
+          const path = require('path')
+          
+          // Try to save to user's home directory
+          const homeDir = process.env.HOME || process.env.USERPROFILE
+          if (homeDir) {
+            const cachePath = path.join(homeDir, '.math-js-cache')
+            
+            // Create directory if it doesn't exist
+            if (!fs.existsSync(cachePath)) {
+              fs.mkdirSync(cachePath, { recursive: true })
+            }
+            
+            const filePath = path.join(cachePath, `${this.STORAGE_KEY}.json`)
+            fs.writeFileSync(filePath, serializedString, 'utf8')
+          }
+        } catch (fsError) {
+          // Fail silently - persistence is a nice-to-have feature
+          return false
+        }
+      }
+      
+      return true
+    } catch (error) {
+      // Fail silently - persistence is a nice-to-have feature
+      return false
+    }
+  },
+  
+  /**
+   * Load the cache from persistent storage if enabled
+   * @returns {boolean} True if successfully loaded, false otherwise
+   */
+  loadFromStorage() {
+    if (!this.PERSISTENT_CACHE_ENABLED) {
+      return false
+    }
+    
+    try {
+      let serializedString = null
+      
+      // Determine storage mechanism based on environment
+      if (typeof localStorage !== 'undefined') {
+        // Browser environment
+        serializedString = localStorage.getItem(this.STORAGE_KEY)
+      } else if (typeof global !== 'undefined' && typeof process !== 'undefined') {
+        // Node.js environment
+        try {
+          const fs = require('fs')
+          const path = require('path')
+          
+          // Try to load from user's home directory
+          const homeDir = process.env.HOME || process.env.USERPROFILE
+          if (homeDir) {
+            const cachePath = path.join(homeDir, '.math-js-cache')
+            const filePath = path.join(cachePath, `${this.STORAGE_KEY}.json`)
+            
+            if (fs.existsSync(filePath)) {
+              serializedString = fs.readFileSync(filePath, 'utf8')
+            }
+          }
+        } catch (fsError) {
+          // Fail silently
+          return false
+        }
+      }
+      
+      if (!serializedString) {
+        return false
+      }
+      
+      // Parse the serialized data
+      const serialized = JSON.parse(serializedString)
+      
+      // Version check
+      if (serialized.version !== 1) {
+        return false
+      }
+      
+      // Check if cache is too old (older than 30 days)
+      const cacheAge = Date.now() - serialized.timestamp
+      if (cacheAge > 30 * 24 * 60 * 60 * 1000) {
+        return false
+      }
+      
+      // Clear the current cache
+      this.clear()
+      
+      // Restore entries to cache
+      for (const entry of serialized.entries) {
+        // Convert array back to Map
+        const factorMap = new Map()
+        for (const [primeStr, exponentStr] of entry.factorArray) {
+          factorMap.set(BigInt(primeStr), BigInt(exponentStr))
+        }
+        
+        // Add to cache
+        this.cache.set(entry.key, {
+          factors: factorMap,
+          isComplete: entry.isComplete,
+          confidence: entry.confidence
+        })
+      }
+      
+      // Restore metrics
+      for (const metric of serialized.metrics) {
+        this.metrics.set(metric.key, {
+          lastAccess: metric.lastAccess,
+          accessCount: metric.accessCount,
+          computationCost: metric.computationCost
+        })
+      }
+      
+      // Reset statistics
+      this.stats.hits = 0
+      this.stats.misses = 0
+      this.stats.total = 0
+      this.stats.lastPruneTime = Date.now()
+      
+      return true
+    } catch (error) {
+      // Fail silently
+      return false
+    }
+  },
+  
+  /**
+   * Enable or disable persistent caching
+   * @param {boolean} enabled - Whether persistent caching should be enabled
+   */
+  setPersistence(enabled) {
+    // Update the configuration
+    const { configure } = require('./config')
+    configure({
+      cache: {
+        persistentCache: !!enabled
+      }
+    })
+    
+    // If enabling, attempt to save the current cache
+    if (enabled) {
+      this.saveToStorage()
     }
   }
 }
@@ -2816,15 +3103,39 @@ const factorizationCache = {
   
   /**
    * Get statistics about the cache
-   * @returns {Object} Statistics object with count and hitRate
+   * @returns {Object} Statistics object with size, maxSize, hits, misses, hitRate, and efficiency
    */
   getStats() {
-    return {
-      size: _factorizationCache.size(),
-      maxSize: _factorizationCache.MAX_CACHE_SIZE
-    }
+    return _factorizationCache.getStats()
+  },
+  
+  /**
+   * Enable or disable persistent caching of factorization results
+   * @param {boolean} enabled - Whether to enable persistent caching
+   */
+  setPersistence(enabled) {
+    _factorizationCache.setPersistence(enabled)
+  },
+  
+  /**
+   * Save the current cache to persistent storage
+   * @returns {boolean} True if successfully saved, false otherwise
+   */
+  saveToStorage() {
+    return _factorizationCache.saveToStorage()
+  },
+  
+  /**
+   * Load the cache from persistent storage
+   * @returns {boolean} True if successfully loaded, false otherwise
+   */
+  loadFromStorage() {
+    return _factorizationCache.loadFromStorage()
   }
 }
+
+// Initialize the factorization cache
+_factorizationCache.initialize()
 
 // Export all functions
 module.exports = {

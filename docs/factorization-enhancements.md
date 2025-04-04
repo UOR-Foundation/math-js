@@ -21,6 +21,7 @@ A sophisticated caching system has been implemented to prevent redundant calcula
 - **Configurable Size**: Adjustable cache size based on application requirements with automatic pruning when size limits are exceeded
 - **Confidence Levels**: Support for partial factorizations with confidence metrics that reflect the certainty of the factorization's completeness
 - **Immutable Results**: All cached factorizations are stored as immutable objects to ensure the integrity of the Prime Framework's canonical representations
+- **Persistent Storage**: Optional persistence across sessions to avoid redundant factorization of large numbers, with storage adapters for browser and Node.js environments
 
 ### 3. Prime Framework-Specific Optimizations
 
@@ -174,6 +175,15 @@ console.log(`Cache size: ${stats.size} entries, Max size: ${stats.maxSize}`);
 // Set maximum cache size
 factorizationCache.setMaxSize(2000);
 
+// Enable persistent caching across sessions
+factorizationCache.setPersistence(true);
+
+// Save the current cache to persistent storage
+factorizationCache.saveToStorage();
+
+// Load cache from persistent storage
+factorizationCache.loadFromStorage();
+
 // Clear the cache
 factorizationCache.clear();
 ```
@@ -183,16 +193,21 @@ factorizationCache.clear();
 - `clear()`: Clear all entries from the cache
 - `setMaxSize(size)`: Set the maximum size of the cache
 - `getStats()`: Get statistics about the cache
+- `setPersistence(enabled)`: Enable or disable persistent caching across sessions
+- `saveToStorage()`: Manually save the current cache to persistent storage
+- `loadFromStorage()`: Manually load the cache from persistent storage
 
 ## Performance Considerations
 
 1. **Memory Usage**: The factorization cache can consume significant memory with large numbers. Adjust the cache size based on your application's requirements.
 
-2. **Algorithm Selection**: For most numbers up to 15-20 digits, the default algorithms provide excellent performance. For larger numbers, enable the `advanced` option.
+2. **Persistent Cache**: For computationally intensive applications working with large numbers, enable persistent caching to avoid redundant factorization across application restarts.
 
-3. **Parallel Factorization**: When factoring very large numbers (>25 digits), enable parallel factorization for better performance on multi-core systems.
+3. **Algorithm Selection**: For most numbers up to 15-20 digits, the default algorithms provide excellent performance. For larger numbers, enable the `advanced` option.
 
-4. **Partial Factorization**: For numbers with hundreds of digits, complete factorization may be infeasible. In such cases, enable the `partialFactorization` option.
+4. **Parallel Factorization**: When factoring very large numbers (>25 digits), enable parallel factorization for better performance on multi-core systems.
+
+5. **Partial Factorization**: For numbers with hundreds of digits, complete factorization may be infeasible. In such cases, enable the `partialFactorization` option.
 
 ## Prime Framework Algebraic Structure Enhancement
 

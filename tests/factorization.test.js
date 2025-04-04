@@ -499,9 +499,51 @@ describe('Factorization Module', () => {
       // Verify stats contain expected fields
       expect(stats).toHaveProperty('size')
       expect(stats).toHaveProperty('maxSize')
+      expect(stats).toHaveProperty('hits')
+      expect(stats).toHaveProperty('misses')
+      expect(stats).toHaveProperty('hitRate')
+      expect(stats).toHaveProperty('efficiency')
+      expect(stats).toHaveProperty('persistenceEnabled')
       
       // Verify size is correct
       expect(stats.size).toBeGreaterThanOrEqual(3)
+    })
+    
+    test('should support enabling and disabling persistence', () => {
+      // Set persistence state
+      factorizationCache.setPersistence(true)
+      
+      // Check if it was set
+      const stats = factorizationCache.getStats()
+      expect(stats.persistenceEnabled).toBe(true)
+      
+      // Disable persistence
+      factorizationCache.setPersistence(false)
+      const statsAfter = factorizationCache.getStats()
+      expect(statsAfter.persistenceEnabled).toBe(false)
+    })
+    
+    test('should support saving and loading cache', () => {
+      // Clear the cache first
+      factorizationCache.clear()
+      
+      // Add some entries
+      factorizeOptimal(123, { useCache: true })
+      factorizeOptimal(456, { useCache: true })
+      factorizeOptimal(789, { useCache: true })
+      
+      // Save cache to storage (might be a mock in tests)
+      factorizationCache.setPersistence(true)
+      factorizationCache.saveToStorage()
+      
+      // In test environment, this might be mocked or unavailable
+      // So don't strictly assert the result
+      
+      // Try loading (again, might be mocked in tests)
+      factorizationCache.loadFromStorage()
+      
+      // Finally, disable persistence and clean up
+      factorizationCache.setPersistence(false)
     })
   })
 

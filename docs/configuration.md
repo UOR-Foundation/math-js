@@ -53,7 +53,7 @@ math.configure({
     maxPrimeCacheSize: 100000,     // Maximum entries in prime cache
     maxFactorizationCacheSize: 1000, // Maximum entries in factorization cache
     evictionPolicy: 'lru',         // Cache eviction policy ('lru', 'fifo', 'random')
-    persistentCache: false,        // Whether to use persistent storage
+    persistentCache: false,        // Whether to use persistent storage across sessions
     ttl: 0                         // Cache TTL in ms (0 = no expiry)
   }
 });
@@ -165,6 +165,33 @@ Configuration settings cascade in the following order (from highest to lowest pr
 2. Environment-specific adjustments
 3. Performance profile defaults
 4. Library default values
+
+## Persistent Caching
+
+When `persistentCache` is enabled, the library automatically saves cached factorization results to persistent storage and loads them when the library is initialized. This is particularly useful for applications that repeatedly work with the same large numbers, as it can significantly reduce factorization time across sessions.
+
+```javascript
+// Enable persistent cache
+math.configure({
+  cache: {
+    persistentCache: true
+  }
+});
+
+// The library will now automatically save factorization results
+// to localStorage in browsers or the file system in Node.js
+
+// You can also manually control persistence
+const { factorizationCache } = math.Factorization;
+
+// Save the current cache state
+factorizationCache.saveToStorage();
+
+// Load the cache from storage
+factorizationCache.loadFromStorage();
+```
+
+In browser environments, the cache is stored in `localStorage`. In Node.js environments, the cache is stored in the user's home directory under `.math-js-cache/`.
 
 ## Advanced Usage
 
