@@ -91,6 +91,51 @@ describe('UniversalNumber', () => {
       const num = new UniversalNumber(42)
       expect(num.toNumber()).toBe(42)
     })
+    
+    test('toNumber with large values throws error', () => {
+      const num = new UniversalNumber('9007199254740992') // MAX_SAFE_INTEGER + 1
+      expect(() => num.toNumber()).toThrow(PrimeMathError)
+    })
+
+    test('toNumber with allowApproximate option', () => {
+      const num = new UniversalNumber('9007199254740995')
+      expect(num.toNumber({ allowApproximate: true })).toBe(9007199254740996) // Note: precision loss due to IEEE 754
+    })
+
+    test('toNumber with suppressErrors option', () => {
+      const largeNum = new UniversalNumber('1234567890123456789012345678901234567890')
+      expect(largeNum.toNumber({ suppressErrors: true })).toBe(Number.POSITIVE_INFINITY)
+      
+      const largeNegNum = new UniversalNumber('-1234567890123456789012345678901234567890')
+      expect(largeNegNum.toNumber({ suppressErrors: true })).toBe(Number.NEGATIVE_INFINITY)
+    })
+
+    test('toApproximateNumber', () => {
+      const largeNum = new UniversalNumber('123456789012345678901234567890')
+      const approx = largeNum.toApproximateNumber()
+      
+      // Should be in scientific notation - mantissa should match first 15 digits
+      expect(approx).toBeGreaterThan(1e29)
+      expect(approx).toBeLessThan(1.3e29)
+      
+      // For a very precise test, we can convert back to string and check format
+      const numStr = approx.toExponential(14)
+      expect(numStr.substring(0, 16)).toBe('1.23456789012345') // Precision might vary slightly due to IEEE 754
+    })
+
+    test('toApproximateNumber with significantDigits option', () => {
+      const num = new UniversalNumber('123456789012345678901234567890')
+      
+      // With only 5 significant digits
+      const approx = num.toApproximateNumber({ significantDigits: 5 })
+      const numStr = approx.toExponential(4)
+      expect(numStr.substring(0, 6)).toBe('1.2345') 
+    })
+
+    test('toApproximateNumber returns proper values for small numbers', () => {
+      const smallNum = new UniversalNumber(42)
+      expect(smallNum.toApproximateNumber()).toBe(42)
+    })
 
     test('toString', () => {
       const num = new UniversalNumber(42)
@@ -101,6 +146,55 @@ describe('UniversalNumber', () => {
       const num = new UniversalNumber(42)
       expect(num.toString(2)).toBe('101010')
       expect(num.toString(16)).toBe('2a')
+    })
+
+    test('formatNumber', () => {
+      const num = new UniversalNumber('123456789012345678901234567890')
+      
+      // Scientific notation
+      expect(num.formatNumber({ notation: 'scientific', precision: 5 }))
+        .toBe('1.2345e29')
+      
+      // Engineering notation (powers of 1000)
+      expect(num.formatNumber({ notation: 'engineering', precision: 5 }))
+        .toBe('123.45678e27')
+      
+      // Compact notation (with SI suffixes)
+      expect(num.formatNumber({ notation: 'compact' }))
+        .toBe('123456789012345Q')
+      
+      // Standard with grouping
+      const smallerNum = new UniversalNumber('123456789')
+      expect(smallerNum.formatNumber({ groupDigits: true }))
+        .toBe('123,456,789')
+    })
+
+    test('formatNumber with different bases', () => {
+      const num = new UniversalNumber(65535)
+      
+      // Hex with grouping
+      expect(num.formatNumber({ base: 16, groupDigits: true, groupSeparator: ' ' }))
+        .toBe('ffff')
+        
+      // Binary with grouping
+      expect(num.formatNumber({ base: 2, groupDigits: true, groupSeparator: '_' }))
+        .toBe('1111_1111_1111_1111')
+    })
+
+    test('getNumberParts', () => {
+      const num = new UniversalNumber('123456789012345678901234567890')
+      const parts = num.getNumberParts()
+      
+      expect(parts.sign).toBe(1)
+      expect(parts.integerPart).toBe('1')
+      expect(parts.fractionalPart.startsWith('2345678')).toBe(true)
+      expect(parts.exponent).toBe(29)
+      expect(parts.isExponentInRange).toBe(true)
+      
+      // With separate digits
+      const partsWithDigits = num.getNumberParts({ getSeparateDigits: true })
+      expect(partsWithDigits.integerDigits).toEqual([1])
+      expect(partsWithDigits.fractionalDigits.slice(0, 3)).toEqual([2, 3, 4])
     })
 
     test('getDigits', () => {

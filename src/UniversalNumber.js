@@ -429,18 +429,110 @@ class UniversalNumber {
   /**
    * Convert the UniversalNumber to a JavaScript Number
    * 
+   * @param {Object} [options] - Conversion options
+   * @param {boolean} [options.allowApproximate=false] - Whether to allow approximate conversion for large values
+   * @param {boolean} [options.suppressErrors=false] - Whether to return Infinity/-Infinity instead of throwing errors
    * @returns {number} The Number representation of the number
-   * @throws {PrimeMathError} If the value is too large to be represented as a Number
+   * @throws {PrimeMathError} If the value is too large to be represented as a Number (unless suppressErrors is true)
    */
-  toNumber() {
+  toNumber(options = {}) {
+    const { allowApproximate = false, suppressErrors = false } = options
     const value = this.toBigInt()
     
-    if (value > BigInt(Number.MAX_SAFE_INTEGER) || 
-        value < BigInt(Number.MIN_SAFE_INTEGER)) {
-      throw new PrimeMathError('Value is too large to be represented as a JavaScript Number')
+    // Check if the value is within the safe integer range
+    if (value <= BigInt(Number.MAX_SAFE_INTEGER) && 
+        value >= BigInt(Number.MIN_SAFE_INTEGER)) {
+      return Number(value)
     }
     
-    return Number(value)
+    // Value exceeds safe integer range
+    
+    // If suppressing errors, return Infinity with appropriate sign
+    if (suppressErrors) {
+      return value > 0n ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY
+    }
+    
+    // Allow approximate conversion if requested
+    if (allowApproximate) {
+      // Convert to string and then to Number - will lose precision but won't throw
+      return Number(value.toString())
+    }
+    
+    // Default behavior: throw error for values outside safe integer range
+    throw new PrimeMathError(
+      `Value ${this._isNegative ? 'below' : 'above'} ${this._isNegative ? 'MIN' : 'MAX'}_SAFE_INTEGER ` +
+      `(${this._isNegative ? Number.MIN_SAFE_INTEGER : Number.MAX_SAFE_INTEGER}). ` +
+      'Use toNumber({allowApproximate: true}) for approximate conversion, ' +
+      'toNumber({suppressErrors: true}) to return Infinity, ' + 
+      'toString() for string representation, ' +
+      'toApproximateNumber() for scientific notation approximation, or ' +
+      'toBigInt() to maintain precision.'
+    )
+  }
+  
+  /**
+   * Get an approximate JavaScript Number representation with scientific notation
+   * This is useful for very large numbers that exceed Number.MAX_SAFE_INTEGER
+   * 
+   * @param {Object} [options] - Options for the approximation
+   * @param {number} [options.significantDigits=15] - Number of significant digits to include (max 17)
+   * @param {boolean} [options.throwOnOverflow=false] - Whether to throw an error if the exponent overflows
+   * @returns {number} The approximate Number in scientific notation
+   * @throws {PrimeMathError} If the exponent is too large even for scientific notation and throwOnOverflow is true
+   */
+  toApproximateNumber(options = {}) {
+    const { significantDigits = 15, throwOnOverflow = false } = options
+    
+    // Limit significant digits to reasonable range for IEEE 754 double precision format
+    const precision = Math.min(Math.max(1, significantDigits), 17)
+    
+    // Handle zero case
+    if (this._isZero) {
+      return 0
+    }
+    
+    // Get string representation
+    const valueStr = this.toString()
+    
+    // Check if we're already within safe integer range (for small numbers)
+    if (valueStr.length <= 15 && !valueStr.includes('.')) {
+      const value = this.toBigInt()
+      if (value <= BigInt(Number.MAX_SAFE_INTEGER) && 
+          value >= BigInt(Number.MIN_SAFE_INTEGER)) {
+        return Number(value)
+      }
+    }
+    
+    // Extract sign
+    const isNegative = valueStr.startsWith('-')
+    const absStr = isNegative ? valueStr.substring(1) : valueStr
+    
+    // For scientific notation, we need to determine the exponent and mantissa
+    const exponent = absStr.length - 1
+    
+    // Check if the exponent is too large for JavaScript Number
+    // IEEE 754 double precision has exponent range of approximately ±1023
+    if (exponent > 1023 || exponent < -1023) {
+      if (throwOnOverflow) {
+        throw new PrimeMathError(
+          `Exponent ${exponent} is outside the range representable by JavaScript Number ` +
+          '(approximately ±1023). Use formatNumber() with scientific notation instead.'
+        )
+      }
+      // Otherwise, return Infinity with appropriate sign
+      return isNegative ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY
+    }
+    
+    // Construct the mantissa with precision significant digits
+    let mantissa = absStr.charAt(0)
+    
+    if (absStr.length > 1 && precision > 1) {
+      mantissa += '.' + absStr.substring(1, Math.min(precision, absStr.length))
+    }
+    
+    // Construct the scientific notation string and convert to Number
+    const scientificStr = `${isNegative ? '-' : ''}${mantissa}e${exponent}`
+    return Number(scientificStr)
   }
 
   /**
@@ -468,6 +560,225 @@ class UniversalNumber {
     
     const absStr = Conversion.toString(this._factorization, base)
     return this._isNegative ? '-' + absStr : absStr
+  }
+  
+  /**
+   * Format the number as a string with configurable formatting options
+   * Particularly useful for very large numbers that exceed JavaScript Number limits
+   * 
+   * @param {Object} [options] - Formatting options
+   * @param {number} [options.precision=20] - Maximum number of significant digits to include
+   * @param {boolean} [options.scientific=false] - Whether to use scientific notation
+   * @param {string} [options.notation='standard'] - Notation style: 'standard', 'scientific', 'engineering', or 'compact'
+   * @param {number} [options.base=10] - The base for the output representation (2-36)
+   * @param {boolean} [options.groupDigits=false] - Whether to group digits (e.g., with commas in base 10)
+   * @param {string} [options.groupSeparator=','] - Character to use as the digit group separator
+   * @returns {string} The formatted string representation
+   */
+  formatNumber(options = {}) {
+    const {
+      precision = 20,
+      scientific = false,
+      notation = 'standard',
+      base = 10,
+      groupDigits = false,
+      groupSeparator = ','
+    } = options
+    
+    // Get the full string representation in the requested base
+    const fullStr = this.toString(base)
+    
+    // Return directly for zero, small numbers, or if no formatting needed
+    if (this._isZero || fullStr.length <= precision && notation === 'standard' && !groupDigits) {
+      return fullStr
+    }
+    
+    // For scientific notation
+    if (scientific || notation === 'scientific') {
+      // Handle negative sign
+      const isNegative = fullStr.startsWith('-')
+      const valueStr = isNegative ? fullStr.substring(1) : fullStr
+      
+      // Calculate exponent and get mantissa
+      const exponent = valueStr.length - 1
+      let mantissa = valueStr.charAt(0)
+      
+      // Add decimal point and remaining digits if available and within precision
+      if (valueStr.length > 1 && precision > 1) {
+        mantissa += '.' + valueStr.substring(1, Math.min(precision, valueStr.length))
+      }
+      
+      // Format with exponent
+      const sign = isNegative ? '-' : ''
+      return `${sign}${mantissa}e${exponent}`
+    }
+    
+    // For engineering notation (powers of 1000)
+    if (notation === 'engineering') {
+      // Handle negative sign
+      const isNegative = fullStr.startsWith('-')
+      const valueStr = isNegative ? fullStr.substring(1) : fullStr
+      
+      // Calculate exponent (multiple of 3)
+      const exponent = valueStr.length - 1
+      const adjustedExponent = Math.floor(exponent / 3) * 3
+      const digitsBeforeDecimal = exponent - adjustedExponent + 1
+      
+      // Build mantissa
+      let mantissa = valueStr.substring(0, digitsBeforeDecimal)
+      
+      // Add decimal point and remaining digits if needed
+      if (digitsBeforeDecimal < Math.min(precision, valueStr.length)) {
+        mantissa += '.' + valueStr.substring(digitsBeforeDecimal, 
+          Math.min(precision + digitsBeforeDecimal, valueStr.length))
+      }
+      
+      // Format with exponent
+      const sign = isNegative ? '-' : ''
+      return `${sign}${mantissa}e${adjustedExponent}`
+    }
+    
+    // For compact notation
+    if (notation === 'compact') {
+      // Handle negative sign
+      const isNegative = fullStr.startsWith('-')
+      const valueStr = isNegative ? fullStr.substring(1) : fullStr
+      
+      // Use standard SI suffixes for powers of 1000
+      const suffixes = ['', 'K', 'M', 'B', 'T', 'Q']
+      const exponent = valueStr.length - 1
+      const suffixIndex = Math.min(Math.floor(exponent / 3), suffixes.length - 1)
+      const adjustedExponent = suffixIndex * 3
+      const digitsBeforeDecimal = exponent - adjustedExponent + 1
+      
+      // Build mantissa
+      let mantissa = valueStr.substring(0, digitsBeforeDecimal)
+      
+      // Add decimal point and remaining digits if needed (limited to 2 decimal places for compact)
+      if (digitsBeforeDecimal < Math.min(3, valueStr.length)) {
+        mantissa += '.' + valueStr.substring(digitsBeforeDecimal, 
+          Math.min(digitsBeforeDecimal + 2, valueStr.length))
+      }
+      
+      // Format with suffix
+      const sign = isNegative ? '-' : ''
+      return `${sign}${mantissa}${suffixes[suffixIndex]}`
+    }
+    
+    // Standard notation with potential truncation and grouping
+    // Handle negative sign
+    const isNegative = fullStr.startsWith('-')
+    const valueStr = isNegative ? fullStr.substring(1) : fullStr
+    
+    // Truncate to precision if necessary
+    const truncated = valueStr.length > precision ? 
+      valueStr.substring(0, precision) : valueStr
+    
+    // Handle digit grouping if requested (e.g., 1,234,567)
+    if (groupDigits) {
+      // Group digits (standard grouping is 3 for base 10)
+      const groupSize = base === 10 ? 3 : (base === 16 ? 4 : (base === 2 ? 4 : 3))
+      let result = ''
+      
+      // Process groups from the end of the string
+      for (let i = truncated.length; i > 0; i -= groupSize) {
+        const start = Math.max(0, i - groupSize)
+        if (result.length > 0) {
+          result = truncated.substring(start, i) + groupSeparator + result
+        } else {
+          result = truncated.substring(start, i)
+        }
+      }
+      
+      // Add sign if negative
+      return isNegative ? '-' + result : result
+    }
+    
+    // Return truncated string with sign
+    return isNegative ? '-' + truncated : truncated
+  }
+  
+  /**
+   * Get parts of the number for custom display formatting
+   * Useful for handling very large numbers that exceed JavaScript Number limits
+   * 
+   * @param {Object} [options] - Options for extracting parts
+   * @param {number} [options.base=10] - The base for representation
+   * @param {boolean} [options.includeExponent=true] - Whether to calculate and include exponent info
+   * @param {number} [options.significantDigits=15] - Number of significant digits
+   * @param {boolean} [options.getSeparateDigits=false] - Whether to return digits as separate array entries
+   * @returns {Object} Object containing number parts (sign, integerPart, fractionalPart, etc.)
+   */
+  getNumberParts(options = {}) {
+    const {
+      base = 10,
+      includeExponent = true,
+      significantDigits = 15,
+      getSeparateDigits = false
+    } = options
+    
+    // Handle zero case
+    if (this._isZero) {
+      return {
+        isZero: true,
+        sign: 1,
+        integerPart: '0',
+        integerDigits: [0],
+        fractionalPart: '',
+        fractionalDigits: [],
+        exponent: 0,
+        isExponentInRange: true
+      }
+    }
+    
+    // Get string representation
+    const str = this.toString(base)
+    
+    // Extract sign
+    const isNegative = str.startsWith('-')
+    const absStr = isNegative ? str.substring(1) : str
+    
+    // Calculate exponent (power of base)
+    const exponent = absStr.length - 1
+    
+    // Determine if exponent is within JavaScript Number range
+    const isExponentInRange = exponent <= 1023 && exponent >= -1023
+    
+    // Create limited-precision version with significant digits
+    const precision = Math.min(significantDigits, absStr.length)
+    const truncatedStr = absStr.substring(0, precision)
+    
+    // Handle integer and fractional parts based on truncation
+    let integerPart, fractionalPart
+    
+    if (includeExponent) {
+      // If including exponent, the integer part is just the first digit
+      integerPart = truncatedStr.charAt(0)
+      fractionalPart = truncatedStr.length > 1 ? truncatedStr.substring(1) : ''
+    } else {
+      // Otherwise, the integer part is the full truncated string
+      integerPart = truncatedStr
+      fractionalPart = ''
+    }
+    
+    // Get separate digits if requested
+    const integerDigits = getSeparateDigits ? 
+      integerPart.split('').map(d => parseInt(d, base)) : []
+      
+    const fractionalDigits = getSeparateDigits && fractionalPart ? 
+      fractionalPart.split('').map(d => parseInt(d, base)) : []
+    
+    // Return the decomposed parts
+    return {
+      isZero: false,
+      sign: isNegative ? -1 : 1,
+      integerPart,
+      integerDigits,
+      fractionalPart,
+      fractionalDigits,
+      exponent,
+      isExponentInRange
+    }
   }
 
   /**

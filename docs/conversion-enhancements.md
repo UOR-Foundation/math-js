@@ -2,6 +2,55 @@
 
 The Conversion module is a vital component of the Math-JS library, providing utilities for converting between different number representations. This module implements the Prime Framework's requirements for direct base conversions via universal coordinates, coordinate transformations, and efficient serialization formats. The enhancements described in this document have been implemented to significantly improve performance, flexibility, and interoperability while maintaining strict adherence to the Prime Framework's specifications.
 
+## JavaScript Number Conversion Limitations
+
+When converting UniversalNumber to JavaScript Number via `toNumber()`, the library now provides several options to handle numbers that exceed JavaScript's safe integer limits:
+
+```javascript
+const { UniversalNumber } = require('math-js')
+
+// Create a very large number
+const largeNumber = new UniversalNumber('1234567890123456789012345')
+
+// Attempt to convert to Number with different options
+try {
+  // Default behavior - throws error for values outside safe integer range
+  const num1 = largeNumber.toNumber()  // Throws PrimeMathError
+} catch (e) {
+  console.error('Default conversion:', e.message) 
+}
+
+// Use approximate conversion (will lose precision)
+const approxNum = largeNumber.toNumber({ allowApproximate: true })
+console.log('Approximate:', approxNum)  // Returns approximate value with loss of precision
+
+// Use suppressErrors option (returns Infinity)
+const infinityNum = largeNumber.toNumber({ suppressErrors: true })
+console.log('With suppressErrors:', infinityNum)  // Returns Infinity
+
+// Use scientific notation approximation with specified precision
+const scientificNum = largeNumber.toApproximateNumber({ significantDigits: 6 })
+console.log('Scientific notation:', scientificNum)
+console.log('Scientific string:', scientificNum.toExponential(5))  // 1.23457e+24
+
+// Format as string with different notations
+console.log('Scientific format:', largeNumber.formatNumber({ notation: 'scientific', precision: 6 }))  // "1.23457e24"
+console.log('Engineering format:', largeNumber.formatNumber({ notation: 'engineering', precision: 6 }))  // "1.23457e24"
+console.log('Compact format:', largeNumber.formatNumber({ notation: 'compact' }))  // "1.23Q"
+console.log('Grouped format:', largeNumber.formatNumber({ groupDigits: true }))  // "1,234,567,890,123,456,789,012,345"
+
+// Get number parts for custom display
+const parts = largeNumber.getNumberParts()
+console.log('Number parts:', parts)
+// {
+//   sign: 1,
+//   integerPart: '1',
+//   fractionalPart: '234567890123456789012345',
+//   exponent: 24,
+//   isExponentInRange: true
+// }
+```
+
 ## Key Enhancements
 
 ### 1. Direct Base Conversion via Universal Coordinates
