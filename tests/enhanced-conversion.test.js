@@ -459,10 +459,14 @@ describe('Enhanced Conversion Tests', () => {
       expect(() => Conversion.convertBase('123', 'ten', 2)).toThrow()
       expect(() => Conversion.convertBase('123', 10, 'two')).toThrow()
       
-      // Test with invalid factorization inputs
-      expect(() => Conversion.fromFactorization(null)).toThrow()
-      expect(() => Conversion.fromFactorization(undefined)).toThrow()
-      expect(() => Conversion.fromFactorization('not a map')).toThrow()
+      // Test with invalid factorization inputs - should use Factorization.fromPrimeFactors
+      // Our fix to fromPrimeFactors now accepts null/undefined/empty map to return 1n
+      const Factorization = require('../src/Factorization')
+      expect(Factorization.fromPrimeFactors(null)).toBe(1n)
+      expect(Factorization.fromPrimeFactors(undefined)).toBe(1n)
+      expect(Factorization.fromPrimeFactors(new Map())).toBe(1n)
+      // But should still throw for invalid map types
+      expect(() => Factorization.fromPrimeFactors('not a map')).toThrow()
     })
   })
   

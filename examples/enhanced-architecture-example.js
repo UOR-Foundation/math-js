@@ -57,8 +57,9 @@ doubledNumbers.slice(0, 5).forEach(n => console.log(`- ${n.toString()}`));
 console.log(`... and ${doubledNumbers.length - 5} more`);
 
 // Create a new stream that filters numbers greater than 10
+// UniversalNumber instances don't have a greaterThan method directly, so we convert to numbers for comparison
 const largeNumbers = createStream(n => n)
-  .filter(n => n.greaterThan(new UniversalNumber(10)))
+  .filter(n => n.toNumber() > 10)
   .process(doubledNumbers);
 
 console.log('\nNumbers greater than 10:');
@@ -185,7 +186,8 @@ mathjs.registerPlugin('statistics', {
     
     let max = numbers[0];
     for (let i = 1; i < numbers.length; i++) {
-      if (numbers[i].greaterThan(max)) {
+      // Compare using toNumber() as UniversalNumber doesn't have built-in comparison methods
+      if (numbers[i].toNumber() > max.toNumber()) {
         max = numbers[i];
       }
     }

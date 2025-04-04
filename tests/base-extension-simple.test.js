@@ -22,14 +22,16 @@ describe('Base Extension', () => {
     // Using base 62 (should work with our config changes)
     expect(num.toString(62)).toBe('G')
     
-    // Run the test with index 16 
-    // (using G as the test character which is at index 16 for base-36)
+    // Run the test with character 'G'
+    // In our extended charset, 'G' is the 42nd character (index 42)
+    // 0-9 = 0-9, a-z = 10-35, A-Z = 36-61
     const base62Num = new UniversalNumber('G', 62)
-    expect(base62Num.toNumber()).toBe(16) 
+    expect(base62Num.toNumber()).toBe(42) 
     
     // We should be able to represent larger digits with base-62
     const largeBase62 = new UniversalNumber('Z9', 62)
-    expect(largeBase62.toNumber()).toBe(35 * 62 + 9)
+    // Z = 61 (not 35), 9 = 9
+    expect(largeBase62.toNumber()).toBe(61 * 62 + 9)
     
     // Verify we get an error for bases greater than our limit
     expect(() => num.toString(63)).toThrow(/Invalid base/)

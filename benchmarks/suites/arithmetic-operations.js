@@ -221,7 +221,7 @@ suite.add('UniversalNumber vs BigInt (addition)', () => {
   const bigResult = bigA + bigB
   
   // Verify they're equal
-  return { univResult, bigIntResult: new UniversalNumber(bigResult) }
+  return { univResult, bigIntValue: bigResult }
 })
 
 suite.add('UniversalNumber vs BigInt (multiplication)', () => {
@@ -237,7 +237,7 @@ suite.add('UniversalNumber vs BigInt (multiplication)', () => {
   const bigResult = bigA * bigB
   
   // Verify they're equal
-  return { univResult, bigIntResult: new UniversalNumber(bigResult) }
+  return { univResult, bigIntValue: bigResult }
 })
 
 // Export the suite

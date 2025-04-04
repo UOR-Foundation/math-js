@@ -260,7 +260,10 @@ function createSuite(name, options = {}) {
 /**
  * Run all benchmark suites
  * @param {Object} options - Global options
- * @param {Array<string>} specificSuites - Optional array of suite names to run
+ * @param {string} options.profile - Performance profile ('balanced', 'speed', 'precision')
+ * @param {string} options.size - Test data size ('small', 'medium', 'large', 'extreme')
+ * @param {Object} options.config - Applied configuration settings
+ * @param {Array<string>} options.specificSuites - Optional array of suite names to run
  */
 async function runAll(options = {}) {
   console.log('🚀 Starting math-js benchmark suite')
@@ -271,6 +274,11 @@ async function runAll(options = {}) {
   
   // Store global configuration for reference
   benchmarkResults.globalConfig = { ...mathjs.config }
+  
+  // Store profile and size information
+  benchmarkResults.profile = options.profile || 'balanced'
+  benchmarkResults.size = options.size || 'medium'
+  benchmarkResults.appliedConfig = options.config || {}
   
   // Get all suites
   const allSuites = loadSuites()
@@ -293,14 +301,103 @@ async function runAll(options = {}) {
   
   // Run each suite sequentially
   for (const suite of suitesToRun) {
-    await suite.run(options)
+    // Pass the configuration details to each suite
+    const suiteOptions = {
+      ...options,
+      // Add data size specific parameters for test generation
+      testSizes: getTestSizesForProfile(options.size)
+    }
+    
+    await suite.run(suiteOptions)
   }
   
   // Save results
   const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0]
-  saveResults(`benchmark-${timestamp}.json`)
+  const resultsFilename = `benchmark-${options.profile}-${options.size}-${timestamp}.json`
+  saveResults(resultsFilename)
   
   console.log('\n✅ All benchmarks completed')
+}
+
+/**
+ * Get appropriate test number sizes based on the selected profile
+ * @param {string} size - Size profile ('small', 'medium', 'large', 'extreme')
+ * @returns {Object} Test size ranges for different benchmark categories
+ */
+function getTestSizesForProfile(size = 'medium') {
+  // Define size ranges for different test categories
+  const sizeRanges = {
+    small: {
+      arithmetic: {
+        small: 2,         // 2-digit numbers
+        medium: 5,         // 5-digit numbers
+        large: 10          // 10-digit numbers
+      },
+      factorization: {
+        small: 5,         // 5-digit numbers
+        medium: 8,         // 8-digit numbers
+        large: 12          // 12-digit numbers
+      },
+      conversion: {
+        small: 5,         // 5-digit numbers
+        medium: 10,        // 10-digit numbers
+        large: 15          // 15-digit numbers
+      }
+    },
+    medium: {
+      arithmetic: {
+        small: 5,          // 5-digit numbers
+        medium: 10,        // 10-digit numbers
+        large: 15          // 15-digit numbers
+      },
+      factorization: {
+        small: 8,          // 8-digit numbers
+        medium: 12,        // 12-digit numbers
+        large: 18          // 18-digit numbers
+      },
+      conversion: {
+        small: 10,         // 10-digit numbers
+        medium: 20,        // 20-digit numbers
+        large: 30          // 30-digit numbers
+      }
+    },
+    large: {
+      arithmetic: {
+        small: 10,         // 10-digit numbers
+        medium: 20,        // 20-digit numbers
+        large: 30          // 30-digit numbers
+      },
+      factorization: {
+        small: 15,         // 15-digit numbers
+        medium: 25,        // 25-digit numbers
+        large: 40          // 40-digit numbers
+      },
+      conversion: {
+        small: 20,         // 20-digit numbers
+        medium: 40,        // 40-digit numbers
+        large: 60          // 60-digit numbers
+      }
+    },
+    extreme: {
+      arithmetic: {
+        small: 20,         // 20-digit numbers
+        medium: 40,        // 40-digit numbers
+        large: 60          // 60-digit numbers
+      },
+      factorization: {
+        small: 25,         // 25-digit numbers
+        medium: 50,        // 50-digit numbers
+        large: 75          // 75-digit numbers
+      },
+      conversion: {
+        small: 40,         // 40-digit numbers
+        medium: 80,        // 80-digit numbers
+        large: 120         // 120-digit numbers
+      }
+    }
+  }
+  
+  return sizeRanges[size] || sizeRanges.medium
 }
 
 // Check if the script is being run directly
