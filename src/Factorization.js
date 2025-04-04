@@ -796,7 +796,7 @@ function pollardRho(n, options = {}) {
   if (n % 2n === 0n) return 2n
   if (n % 3n === 0n) return 3n
   
-  const maxIterations = options.maxIterations || 1000000
+  const maxIterations = options.maxIterations || config.factorization.maxIterations
   const c = options.c !== undefined ? toBigInt(options.c) : 1n
   
   // Define the polynomial function f(x) = (x^2 + c) % n
@@ -881,7 +881,9 @@ function quadraticSieve(n, options = {}) {
   }
   
   // For very small numbers, use a simpler method
-  if (n < 1000000n) {
+  // Use a dynamic threshold based on config
+  const smallNumberThreshold = BigInt(10) ** BigInt(config.factorization.thresholds.trialDivision)
+  if (n < smallNumberThreshold) {
     // Find factor by trial division
     for (let i = 7n; i * i <= n; i += 2n) {
       if (n % i === 0n) return i
@@ -1512,7 +1514,9 @@ function ellipticCurveMethod(n, options = {}) {
   }
   
   // For small numbers, use a simpler method
-  if (n < 1000000n) {
+  // Use a dynamic threshold based on config
+  const smallNumberThreshold = BigInt(10) ** BigInt(config.factorization.thresholds.trialDivision)
+  if (n < smallNumberThreshold) {
     // Prime Framework optimization: Use trial division with small prime cache
     const smallPrimes = primeCache.getSmallPrimes()
     for (const p of smallPrimes) {
@@ -2130,7 +2134,7 @@ function findFactorsPollardRho(n, factors = new Map(), options = {}) {
     // The Prime Framework emphasizes efficient factorization of universal coordinates
     factor = ellipticCurveMethod(n, {
       curves: options.ecmCurves || Math.min(15, 5 + Math.floor(numDigits / 5)),
-      b1: options.ecmB1 || Math.min(1000000, 50000 * Math.floor(numDigits / 10)),
+      b1: options.ecmB1 || Math.min(config.factorization.maxIterations, 50000 * Math.floor(numDigits / 10)),
       b2: options.ecmB2 || 0 // Skip stage 2 for smaller numbers
     })
     
@@ -2155,7 +2159,7 @@ function findFactorsPollardRho(n, factors = new Map(), options = {}) {
     if (factor === n && options.advanced) {
       factor = ellipticCurveMethod(n, {
         curves: options.ecmCurves || 30,
-        b1: options.ecmB1 || 1000000,
+        b1: options.ecmB1 || config.factorization.maxIterations,
         b2: options.ecmB2 || 100000000
       })
     }
@@ -2337,7 +2341,8 @@ function factorizePollardsRho(n, options = {}) {
  * Factorize a number using the most appropriate algorithm based on its size and properties
  * Enhanced with Prime Framework optimizations for better performance and precision
  * Implements the Prime Framework's requirements for unique factorization and canonical form
- * Intelligently selects the most efficient factorization algorithm based on number characteristics
+ * Uses configurable thresholds from config.factorization.thresholds to dynamically select
+ * the most efficient factorization algorithm based on number characteristics
  * 
  * @param {number|string|BigInt} n - The number to factorize
  * @param {Object} [options] - Factorization options
@@ -2368,6 +2373,9 @@ function factorizeOptimal(n, options = {}) {
     validateFactors = true,
     algorithmParams = {}
   } = options
+
+  // Import thresholds from the configuration system
+  const thresholds = config.factorization.thresholds
 
   // Validate input according to Prime Framework requirements
   if (num <= 0n) {
@@ -2412,15 +2420,15 @@ function factorizeOptimal(n, options = {}) {
   // Decision tree for selecting the appropriate algorithm
   // This implements the optimal algorithm selection based on number characteristics
   // as specified in the Prime Framework
-  if (numDigits <= 6) {
-    // For small numbers (up to ~million), use simple trial division
+  if (numDigits <= thresholds.trialDivision) {
+    // For small numbers, use simple trial division
     // This is the most efficient for small numbers
     result = factorize(num)
-  } else if (numDigits <= 12) {
-    // For medium-sized numbers (up to ~trillion), use optimized trial division with precomputed primes
+  } else if (numDigits <= thresholds.optimizedTrialDivision) {
+    // For medium-sized numbers, use optimized trial division with precomputed primes
     // This leverages the prime cache for better performance
     result = factorizeWithPrimes(num)
-  } else if (numDigits <= 25) {
+  } else if (numDigits <= thresholds.pollardRho) {
     // For larger numbers (up to 25 digits)
     if (advanced) {
       // With advanced option, use a combination of methods
@@ -2470,7 +2478,7 @@ function factorizeOptimal(n, options = {}) {
         ...algorithmParams
       })
     }
-  } else if (numDigits <= 50) {
+  } else if (numDigits <= thresholds.ecm) {
     // For very large numbers (up to 50 digits)
     if (advanced) {
       // With advanced option, use enhanced Pollard's Rho with ECM fallback
@@ -2505,7 +2513,7 @@ function factorizeOptimal(n, options = {}) {
         ...algorithmParams
       })
     }
-  } else if (numDigits <= 100) {
+  } else if (numDigits <= thresholds.quadraticSieve) {
     // For extremely large numbers (up to 100 digits), use a sophisticated multi-stage approach
     if (!advanced && !partialFactorization) {
       // Without advanced option or partial factorization permission,
@@ -2525,7 +2533,7 @@ function factorizeOptimal(n, options = {}) {
       partialFactorization,
       // Scale parameters based on number size
       ecmCurves: algorithmParams.ecmCurves || Math.min(30, 10 + Math.floor(numDigits / 5)),
-      ecmB1: algorithmParams.ecmB1 || Math.min(1000000, 100000 * Math.floor(numDigits / 20)),
+      ecmB1: algorithmParams.ecmB1 || Math.min(config.factorization.maxIterations, 100000 * Math.floor(numDigits / 20)),
       ecmB2: algorithmParams.ecmB2 || Math.min(100000000, 1000000 * Math.floor(numDigits / 20)),
       qsFactorBase: algorithmParams.qsFactorBase || Math.min(500, 100 + Math.floor(numDigits / 4) * 20),
       qsSieveSize: algorithmParams.qsSieveSize || Math.min(100000, 10000 + numDigits * 500),

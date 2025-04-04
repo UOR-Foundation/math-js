@@ -31,14 +31,19 @@ console.log('New performance profile:', math.config.performanceProfile);
 
 // Example computation with optimized settings
 console.log('\n3. Performing computation with optimized settings:');
-const largeNumber = math.crypto.randomPrime(512);
-console.log(`Generated a 512-bit prime number: ${largeNumber.toString().substring(0, 20)}...`);
+// Create a number for testing
+const largeNumber = math.UniversalNumber.fromNumber(123456789);
+console.log(`Using number: ${largeNumber.toString()}`);
 
-// Time a factorization operation on a composite number
+// Time a factorization operation
 console.log('\n4. Timing a factorization operation:');
 const start = Date.now();
-const composite = largeNumber.multiply(math.crypto.randomPrime(256));
-const factorizationResult = math.numberTheory.factorize(composite);
+// Create a composite number with known factors
+const factor1 = math.UniversalNumber.fromNumber(12345);
+const factor2 = math.UniversalNumber.fromNumber(67890);
+const composite = factor1.multiply(factor2);
+console.log(`Factorizing composite number: ${composite.toString()}`);
+const factorizationResult = math.UniversalNumber.factorize(composite).getFactorization();
 
 console.log(`Factorization completed in ${Date.now() - start}ms`);
 console.log('Factorization result:');
@@ -78,7 +83,18 @@ const customProfile = {
   },
   factorization: {
     completeSizeLimit: 150,
-    algorithm: 'pollard'
+    algorithm: 'pollard',
+    // Configure factorization method thresholds
+    thresholds: {
+      // Use simple trial division for numbers up to 8 digits
+      trialDivision: 8,
+      // Use optimized trial division up to 16 digits
+      optimizedTrialDivision: 16,
+      // Use Pollard's Rho algorithm up to 30 digits
+      pollardRho: 30,
+      // Use ECM for numbers up to 60 digits
+      ecm: 60
+    }
   },
   primalityTesting: {
     millerRabinRounds: 30
@@ -89,5 +105,14 @@ math.configure(customProfile);
 console.log('Custom profile applied successfully.');
 console.log('Current factorization algorithm:', math.config.factorization.algorithm);
 console.log('Current primality testing rounds:', math.config.primalityTesting.millerRabinRounds);
+
+// Show factorization thresholds
+console.log('\n8. Configured factorization method thresholds:');
+const factConfig = math.getConfig().factorization;
+console.log('Trial division threshold:', factConfig.thresholds.trialDivision, 'digits');
+console.log('Optimized trial division threshold:', factConfig.thresholds.optimizedTrialDivision, 'digits');
+console.log('Pollard\'s Rho threshold:', factConfig.thresholds.pollardRho, 'digits');
+console.log('Elliptic Curve Method threshold:', factConfig.thresholds.ecm, 'digits');
+console.log('Quadratic Sieve threshold:', factConfig.thresholds.quadraticSieve, 'digits');
 
 console.log('\nConfiguration example completed.');

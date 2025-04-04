@@ -106,7 +106,49 @@ const defaultConfig = {
      * Maximum number of iterations for probabilistic factorization algorithms
      * @type {number}
      */
-    maxIterations: 1000000
+    maxIterations: 1000000,
+    
+    /**
+     * Thresholds for factorization method selection based on number size (digits)
+     * Controls when to switch between different factorization algorithms
+     * @type {Object}
+     */
+    thresholds: {
+      /**
+       * Maximum digit size for using simple trial division
+       * Numbers up to this size will use basic trial division
+       * @type {number}
+       */
+      trialDivision: 6,
+      
+      /**
+       * Maximum digit size for using optimized trial division with precomputed primes
+       * Numbers up to this size will use trial division with cached primes
+       * @type {number}
+       */
+      optimizedTrialDivision: 12,
+      
+      /**
+       * Maximum digit size for using Pollard's Rho algorithm
+       * Numbers up to this size will use Pollard's Rho
+       * @type {number}
+       */
+      pollardRho: 25,
+      
+      /**
+       * Maximum digit size for using Elliptic Curve Method (ECM)
+       * Numbers up to this size will use ECM
+       * @type {number}
+       */
+      ecm: 50,
+      
+      /**
+       * Maximum digit size for using Quadratic Sieve
+       * Numbers up to this size will use Quadratic Sieve for factorization
+       * @type {number}
+       */
+      quadraticSieve: 100
+    }
   },
   
   /**
