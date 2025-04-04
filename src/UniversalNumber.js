@@ -9,6 +9,7 @@ const { PrimeMathError, toBigInt, isPrime } = require('./Utils')
 // eslint-disable-next-line no-unused-vars
 const { factorizeOptimal, factorArrayToMap, millerRabinTest, fromPrimeFactors } = require('./Factorization')
 const Conversion = require('./Conversion')
+const { config } = require('./config')
 
 /**
  * @typedef {Object} Coordinates
@@ -127,7 +128,9 @@ class UniversalNumber {
         this._factorization = result.factorization
         this._isNegative = result.isNegative
       } else if (typeof value === 'string') {
-        const result = Conversion.fromString(value)
+        // Check if the second parameter is a base specification
+        const base = arguments.length > 1 && typeof arguments[1] === 'number' ? arguments[1] : 10
+        const result = Conversion.fromString(value, base)
         this._factorization = result.factorization
         this._isNegative = result.isNegative
       } else if (typeof value === 'bigint') {
@@ -273,7 +276,7 @@ class UniversalNumber {
    * Create a UniversalNumber from a string representation
    * 
    * @param {string} str - The string to parse
-   * @param {number} [base=10] - The base of the input string (2-36)
+   * @param {number} [base=10] - The base of the input string (configurable, default: 2-36)
    * @returns {UniversalNumber} A new UniversalNumber instance
    * @throws {PrimeMathError} If str cannot be parsed in the given base
    */
@@ -282,8 +285,9 @@ class UniversalNumber {
       throw new PrimeMathError('Input must be a non-empty string')
     }
     
-    if (!Number.isInteger(base) || base < 2 || base > 36) {
-      throw new PrimeMathError(`Invalid base: ${base} (must be 2-36)`)
+    const { minBase, maxBase } = config.conversion
+    if (!Number.isInteger(base) || base < minBase || base > maxBase) {
+      throw new PrimeMathError(`Invalid base: ${base} (must be ${minBase}-${maxBase})`)
     }
     
     // Special case for zero
@@ -291,6 +295,7 @@ class UniversalNumber {
       return new UniversalNumber(0)
     }
     
+    // Conversion.fromString uses the same config, but we pass the base explicitly
     const result = Conversion.fromString(str, base)
     return new UniversalNumber({
       factorization: result.factorization,
@@ -446,8 +451,9 @@ class UniversalNumber {
    * @throws {PrimeMathError} If the base is invalid
    */
   toString(base = 10) {
-    if (!Number.isInteger(base) || base < 2 || base > 36) {
-      throw new PrimeMathError(`Invalid base: ${base} (must be 2-36)`)
+    const { minBase, maxBase } = config.conversion
+    if (!Number.isInteger(base) || base < minBase || base > maxBase) {
+      throw new PrimeMathError(`Invalid base: ${base} (must be ${minBase}-${maxBase})`)
     }
     
     // Special case for zero
@@ -473,8 +479,9 @@ class UniversalNumber {
    * @throws {PrimeMathError} If the base is invalid
    */
   getDigits(base = 10, leastSignificantFirst = false) {
-    if (!Number.isInteger(base) || base < 2 || base > 36) {
-      throw new PrimeMathError(`Invalid base: ${base} (must be 2-36)`)
+    const { minBase, maxBase } = config.conversion
+    if (!Number.isInteger(base) || base < minBase || base > maxBase) {
+      throw new PrimeMathError(`Invalid base: ${base} (must be ${minBase}-${maxBase})`)
     }
     
     // Special case for zero
