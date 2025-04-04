@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Add permissions for GitHub Pages deployment
+permissions:
+  contents: write
+
 jobs:
   docs:
     runs-on: ubuntu-latest
