@@ -14,6 +14,9 @@ const {
   fastExp
 } = require('./Utils')
 
+// Import central configuration system
+const { config } = require('./config')
+
 /**
  * @typedef {Object} PrimeFactor
  * @property {BigInt} prime - The prime number
@@ -42,9 +45,11 @@ const {
  */
 const _factorizationCache = {
   /**
-   * Maximum size of the cache before pruning
+   * Get maximum size of the cache before pruning from global config
    */
-  MAX_CACHE_SIZE: 1000,
+  get MAX_CACHE_SIZE() {
+    return config.cache.maxFactorizationCacheSize
+  },
   
   /**
    * Map storing factorization results
@@ -82,7 +87,13 @@ const _factorizationCache = {
       })
     }
     
-    this.MAX_CACHE_SIZE = size
+    // Update the configuration system instead of directly setting the property
+    const { configure } = require('./config')
+    configure({
+      cache: {
+        maxFactorizationCacheSize: size
+      }
+    })
     
     // Prune if needed
     if (this.cache.size > this.MAX_CACHE_SIZE) {
