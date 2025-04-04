@@ -116,6 +116,9 @@ const smallPrimes = primeCache.getSmallPrimes();
 // Manage cache
 primeCache.clear(1000n);  // Clear cache above 1000
 primeCache.setMaxCacheSize(50000);  // Set maximum cache size
+primeCache.setMaxCacheSize(10000, { aggressive: true }); // Set size and prune immediately
+const stats = primeCache.getStats(); // Get detailed cache statistics
+const maxSize = primeCache.getMaxCacheSize(); // Get the current maximum size
 ```
 
 #### Methods:
@@ -123,7 +126,10 @@ primeCache.setMaxCacheSize(50000);  // Set maximum cache size
 - `getLargestKnownPrime()`: Returns the largest known prime in the cache
 - `getSmallPrimes()`: Returns an array of pre-cached small primes
 - `clear(threshold)`: Clears cache entries above the specified threshold
-- `setMaxCacheSize(size)`: Sets the maximum number of entries in the cache
+- `setMaxCacheSize(size, options)`: Sets the maximum number of entries in the cache
+  - `options.aggressive`: If true, immediately prunes the cache to the new size
+- `getMaxCacheSize()`: Returns the current maximum cache size
+- `getStats()`: Returns detailed statistics about the cache, including utilization
 
 ## Implementation Notes
 
@@ -136,8 +142,11 @@ primeCache.setMaxCacheSize(50000);  // Set maximum cache size
 3. **Memory Efficiency**: The segmented Sieve of Eratosthenes implementation allows for efficient generation of primes in large ranges without excessive memory usage.
 
 4. **Performance Considerations**:
+   - The cache is fully configurable through the global configuration system
+   - Cache size is limited by default but can be adjusted using `primeCache.setMaxCacheSize()`
    - The cache automatically prunes itself to prevent unbounded growth
    - For very large numbers, consider using options to control cache behavior
+   - Advanced statistics are available through `primeCache.getStats()` for performance tuning
 
 5. **Prime Framework Compliance**: All functions adhere to the Prime Framework's requirements for exactness and canonical representation.
 

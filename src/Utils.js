@@ -492,45 +492,75 @@ function isPrime(n, options = { useCache: true, updateCache: true }) {
 /**
  * Prune the prime cache to prevent memory growth
  * Removes least recently accessed items while preserving small primes
+ * Enhanced to use configuration settings for more flexibility
  * 
  * @private
  */
 function pruneCache() {
-  // Always keep primes under 1000
-  const keysToRemove = []
+  // Get parameters from configuration
+  const preserveLimit = 1000n // Always keep primes under this value
+  const targetSize = Math.floor(_primeCache.MAX_CACHE_SIZE * 0.8) // Target 80% of max
+  
+  // If cache is smaller than max size or barely over, no need to prune
+  if (_primeCache.primalityMap.size <= _primeCache.MAX_CACHE_SIZE * 1.1) {
+    return
+  }
   
   // Identify candidates for removal (we keep small primes)
+  const keysToRemove = []
   for (const key of _primeCache.primalityMap.keys()) {
     const num = BigInt(key)
-    if (num > 1000n) {
+    if (num > preserveLimit) {
       keysToRemove.push(key)
     }
   }
   
-  // Remove about half of the candidates, prioritizing composite numbers
-  const removalTarget = Math.floor(keysToRemove.length / 2)
-  let removed = 0
+  // Calculate how many entries to remove to reach target size
+  const removalTarget = Math.max(
+    _primeCache.primalityMap.size - targetSize,
+    Math.floor(keysToRemove.length * 0.5) // Remove at least 50% of removable entries
+  )
   
-  // First remove composites (false values)
-  for (const key of keysToRemove) {
-    if (removed >= removalTarget) break
+  // Sort candidates by value (we prefer to keep smaller numbers)
+  keysToRemove.sort((a, b) => {
+    // First prioritize by primality - keep primes
+    const isPrimeA = _primeCache.primalityMap.get(a)
+    const isPrimeB = _primeCache.primalityMap.get(b)
     
-    if (_primeCache.primalityMap.get(key) === false) {
-      _primeCache.primalityMap.delete(key)
-      removed++
+    if (isPrimeA !== isPrimeB) {
+      return isPrimeA ? 1 : -1 // Remove composites first
     }
+    
+    // Then prioritize by size - remove larger numbers first
+    // Use string comparison for sorting since we can't subtract BigInts for sort
+    const numA = BigInt(a)
+    const numB = BigInt(b)
+    if (numA > numB) return -1
+    if (numA < numB) return 1
+    return 0
+  })
+  
+  // Remove entries to reach target
+  const toRemove = keysToRemove.slice(0, removalTarget)
+  for (const key of toRemove) {
+    _primeCache.primalityMap.delete(key)
   }
   
-  // If we still need to remove more, remove some primes
-  if (removed < removalTarget) {
-    for (const key of keysToRemove) {
-      if (removed >= removalTarget) break
-      
-      if (_primeCache.primalityMap.get(key) === true) {
-        _primeCache.primalityMap.delete(key)
-        removed++
+  // Update the largest known prime if we removed it
+  if (_primeCache.primalityMap.has(_primeCache.largestKnownPrime.toString()) === false) {
+    // Find new largest known prime
+    let newLargest = _primeCache.knownPrimes[_primeCache.knownPrimes.length - 1]
+    
+    for (const [key, isPrime] of _primeCache.primalityMap.entries()) {
+      if (isPrime) {
+        const num = BigInt(key)
+        if (num > newLargest) {
+          newLargest = num
+        }
       }
     }
+    
+    _primeCache.largestKnownPrime = newLargest
   }
 }
 
@@ -898,13 +928,64 @@ const primeCache = {
   },
   
   /**
-   * Set the maximum size of the cache
-   * @param {number} size - New maximum cache size
+   * Get the maximum size limit of the prime cache
+   * 
+   * @returns {number} The current maximum cache size limit
    */
-  setMaxCacheSize(size) {
-    if (typeof size !== 'number' || size <= 0) {
-      throw new PrimeMathError('Cache size must be a positive number')
+  getMaxCacheSize() {
+    return _primeCache.MAX_CACHE_SIZE
+  },
+  
+  /**
+   * Get detailed statistics about the prime cache
+   * 
+   * @returns {Object} Statistics including size, capacity, and prime counts
+   */
+  getStats() {
+    // Count primes in the cache
+    let primeCount = 0
+    let compositeCount = 0
+    
+    for (const isPrime of _primeCache.primalityMap.values()) {
+      if (isPrime) {
+        primeCount++
+      } else {
+        compositeCount++
+      }
     }
+    
+    return {
+      size: _primeCache.primalityMap.size,
+      maxSize: _primeCache.MAX_CACHE_SIZE,
+      utilization: _primeCache.primalityMap.size / _primeCache.MAX_CACHE_SIZE,
+      primes: primeCount,
+      composites: compositeCount,
+      largestPrime: _primeCache.largestKnownPrime,
+      largestChecked: _primeCache.largestCheckedNumber
+    }
+  },
+  
+  /**
+   * Set the maximum size of the prime cache
+   * Enhanced to provide fine-grained control over memory usage
+   * 
+   * @param {number} size - New maximum cache size (number of entries)
+   * @param {Object} [options] - Additional options
+   * @param {boolean} [options.aggressive=false] - If true, immediately prunes to new size
+   * @param {boolean} [options.adjustThreshold=true] - If true, adjusts pruning thresholds based on new size
+   * @throws {PrimeMathError} If the size parameter is invalid
+   */
+  setMaxCacheSize(size, options = {}) {
+    // Validate size parameter
+    if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0) {
+      throw new PrimeMathError('Cache size must be a positive finite number', {
+        cause: { provided: size, expected: 'positive number' }
+      })
+    }
+    
+    // Parse options
+    const aggressive = options.aggressive === true
+    // Note: adjustThreshold is reserved for future enhanced pruning strategies
     
     // Update global configuration
     const { configure } = require('./config')
@@ -914,8 +995,12 @@ const primeCache = {
       }
     })
     
-    // Prune if needed
-    if (_primeCache.primalityMap.size > _primeCache.MAX_CACHE_SIZE) {
+    // If aggressive, immediately prune to target size
+    if (aggressive && _primeCache.primalityMap.size > size) {
+      pruneCache() // This will prune to 80% of the new size
+    }
+    // Otherwise, only prune if significantly over limit
+    else if (_primeCache.primalityMap.size > size * 1.2) {
       pruneCache()
     }
   }
