@@ -3,11 +3,20 @@
   "version": "0.1.0",
   "description": "A JavaScript library implementing the Prime Framework for universal number representation",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "test": "jest",
     "lint": "eslint src tests",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
+    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build",
+    "version": "git add -A",
+    "postversion": "git push && git push --tags",
     "docs": "jsdoc -c jsdoc.json",
     "benchmark": "node benchmarks/run.js",
     "benchmark:gc": "node --expose-gc benchmarks/run.js",
@@ -25,6 +34,17 @@
   ],
   "author": "UOR Foundation",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uor-foundation/math-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/uor-foundation/math-js/issues"
+  },
+  "homepage": "https://github.com/uor-foundation/math-js#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^22.13.14",
@@ -33,5 +53,8 @@
     "jest": "^29.7.0",
     "jsdoc": "^4.0.2",
     "typescript": "^5.4.2"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

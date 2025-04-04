@@ -2,9 +2,11 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "CommonJS",
-    "declaration": false, /* Disable for now */
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "./src",
     "strict": false, /* Temporarily lower strictness to allow fixes */
     "noImplicitAny": false, /* Temporarily disable to allow fixing errors gradually */
     "strictNullChecks": false, /* Temporarily disable strict null checks */
@@ -19,6 +21,6 @@
     "types": ["jest", "node"],
     "lib": ["ESNext"]
   },
-  "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "tests", "examples", "benchmarks"]
 }

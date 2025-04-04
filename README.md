@@ -103,6 +103,18 @@ npm run benchmark:memory
 
 For more details, see the [benchmarks README](./benchmarks/README.md).
 
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+## Versioning
+
+This project follows [Semantic Versioning](https://semver.org/). For the versions available, see the [tags on this repository](https://github.com/uor-foundation/math-js/tags).
+
+## Release Process
+
+For information about the release process, see [RELEASING.md](./RELEASING.md).
+
 ## License
 
 MIT
