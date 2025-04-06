@@ -10,6 +10,8 @@ The library introduces **Universal Numbers** – integers encoded by their compl
 
 ## Installation
 
+### npm (Node.js)
+
 ```bash
 # Install from GitHub Packages
 npm install @uor-foundation/math-js
@@ -22,6 +24,26 @@ You may need to configure npm to use GitHub Packages by creating a `.npmrc` file
 ```
 
 If you're using a private repository, you'll need to authenticate with GitHub Packages. See [GitHub's documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#authenticating-to-github-packages) for more details.
+
+### Browser
+
+You can include the library directly in your browser applications using the minified UMD bundle:
+
+```html
+<!-- From your own server -->
+<script src="path/to/math-js.min.js"></script>
+
+<!-- Or from GitHub (replace 'main' with a specific tag or commit if needed) -->
+<script src="https://raw.githubusercontent.com/uor-foundation/math-js/main/dist/math-js.min.js"></script>
+
+<script>
+  // The library is available as the global variable 'PrimeMath'
+  const { UniversalNumber } = PrimeMath;
+  
+  const num = UniversalNumber.fromNumber(42);
+  console.log(num.toString());
+</script>
+```
 
 ## Basic Usage
 

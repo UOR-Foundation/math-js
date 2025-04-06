@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Math-JS Browser Example</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    .example {
+      background: #f5f5f5;
+      border-radius: 5px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    pre {
+      background: #eee;
+      padding: 10px;
+      border-radius: 3px;
+      overflow-x: auto;
+    }
+    .result {
+      background: #f0fff0;
+      border-left: 3px solid #2a2;
+      padding: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Math-JS Browser Example</h1>
+  
+  <div class="example">
+    <h2>Prime Factorization</h2>
+    <p>Enter a number below to see its prime factorization:</p>
+    <input type="number" id="factorInput" value="360" min="1" max="999999999">
+    <button id="factorizeBtn">Factorize</button>
+    <div id="factorResult" class="result"></div>
+  </div>
+  
+  <div class="example">
+    <h2>Arithmetic Operations</h2>
+    <div>
+      <input type="number" id="num1" value="42" min="1" max="999999999">
+      <select id="operation">
+        <option value="add">+</option>
+        <option value="subtract">-</option>
+        <option value="multiply">×</option>
+        <option value="divide">÷</option>
+      </select>
+      <input type="number" id="num2" value="7" min="1" max="999999999">
+      <button id="calculateBtn">=</button>
+      <div id="calcResult" class="result"></div>
+    </div>
+  </div>
+  
+  <div class="example">
+    <h2>Base Conversion</h2>
+    <div>
+      <input type="number" id="baseInput" value="42" min="1" max="999999999">
+      <label for="baseSelect">Convert to base:</label>
+      <select id="baseSelect">
+        <option value="2">Binary (base 2)</option>
+        <option value="8">Octal (base 8)</option>
+        <option value="16">Hexadecimal (base 16)</option>
+        <option value="36">Base 36</option>
+      </select>
+      <button id="convertBtn">Convert</button>
+      <div id="convertResult" class="result"></div>
+    </div>
+  </div>
+
+  <!-- Load the Math-JS library -->
+  <script src="../dist/math-js.min.js"></script>
+  
+  <script>
+    // Extract the classes from the global PrimeMath object
+    const { UniversalNumber } = PrimeMath;
+    
+    // Factorization example
+    document.getElementById('factorizeBtn').addEventListener('click', function() {
+      const num = parseInt(document.getElementById('factorInput').value);
+      const univNum = UniversalNumber.fromNumber(num);
+      const factors = univNum.getCoordinates();
+      
+      let resultHTML = `<strong>Prime Factorization of ${num}:</strong><br>`;
+      let factorString = '';
+      
+      factors.forEach(factor => {
+        if (factorString) factorString += ' × ';
+        factorString += `${factor.p}<sup>${factor.e}</sup>`;
+      });
+      
+      resultHTML += `<pre>${factorString}</pre>`;
+      document.getElementById('factorResult').innerHTML = resultHTML;
+    });
+    
+    // Arithmetic example
+    document.getElementById('calculateBtn').addEventListener('click', function() {
+      const num1 = parseInt(document.getElementById('num1').value);
+      const num2 = parseInt(document.getElementById('num2').value);
+      const operation = document.getElementById('operation').value;
+      
+      const univNum1 = UniversalNumber.fromNumber(num1);
+      const univNum2 = UniversalNumber.fromNumber(num2);
+      
+      let result, resultText;
+      
+      try {
+        switch(operation) {
+          case 'add':
+            result = univNum1.add(univNum2);
+            resultText = `${num1} + ${num2} = ${result.toString()}`;
+            break;
+          case 'subtract':
+            result = univNum1.subtract(univNum2);
+            resultText = `${num1} - ${num2} = ${result.toString()}`;
+            break;
+          case 'multiply':
+            result = univNum1.multiply(univNum2);
+            resultText = `${num1} × ${num2} = ${result.toString()}`;
+            break;
+          case 'divide':
+            result = univNum1.divide(univNum2);
+            resultText = `${num1} ÷ ${num2} = ${result.toString()}`;
+            break;
+        }
+        
+        document.getElementById('calcResult').innerHTML = `<strong>Result:</strong> ${resultText}`;
+      } catch (e) {
+        document.getElementById('calcResult').innerHTML = `<strong>Error:</strong> ${e.message}`;
+      }
+    });
+    
+    // Base conversion example
+    document.getElementById('convertBtn').addEventListener('click', function() {
+      const num = parseInt(document.getElementById('baseInput').value);
+      const base = parseInt(document.getElementById('baseSelect').value);
+      
+      const univNum = UniversalNumber.fromNumber(num);
+      const converted = univNum.toString(base);
+      
+      const baseName = {
+        2: 'Binary',
+        8: 'Octal',
+        16: 'Hexadecimal',
+        36: 'Base-36'
+      }[base] || `Base-${base}`;
+      
+      document.getElementById('convertResult').innerHTML = 
+        `<strong>${num} in ${baseName}:</strong> <pre>${converted}</pre>`;
+    });
+    
+    // Initialize with default values
+    document.getElementById('factorizeBtn').click();
+    document.getElementById('calculateBtn').click();
+    document.getElementById('convertBtn').click();
+  </script>
+</body>
+</html>
