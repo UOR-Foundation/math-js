@@ -95,10 +95,20 @@
       let resultHTML = `<strong>Prime Factorization of ${num}:</strong><br>`;
       let factorString = '';
       
-      factors.forEach(factor => {
-        if (factorString) factorString += ' × ';
-        factorString += `${factor.p}<sup>${factor.e}</sup>`;
-      });
+      // Handle the factorization map correctly
+      if (factors && factors.factorization instanceof Map) {
+        const factMap = factors.factorization;
+        if (factMap.size === 0) {
+          factorString = '1'; // Special case for 1 or empty factorization
+        } else {
+          factMap.forEach((exponent, prime) => {
+            if (factorString) factorString += ' × ';
+            factorString += `${prime}<sup>${exponent}</sup>`;
+          });
+        }
+      } else {
+        factorString = 'Unable to parse factorization';
+      }
       
       resultHTML += `<pre>${factorString}</pre>`;
       document.getElementById('factorResult').innerHTML = resultHTML;
