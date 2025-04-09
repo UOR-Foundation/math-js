@@ -61,7 +61,6 @@
     "webpack-cli": "^6.0.1"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com/",
     "access": "public"
   }
 }
